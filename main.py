@@ -11,7 +11,8 @@ class GameView(arcade.Window):
         self.text_box = None
         self.current_word = ""
         self.input = ""
-        self.laser_sound = arcade.Sound(":resources:/sounds/hit2.wav")
+        self.laser_sound = arcade.Sound(":resources:/sounds/laser2.wav")
+        self.explosion_sound = arcade.Sound(":resources:/sounds/explosion2.wav")
 
     def setup(self):
         self.player_sprite = arcade.Sprite(":resources:/images/space_shooter/playerShip1_blue.png", angle=90)
@@ -39,6 +40,9 @@ class GameView(arcade.Window):
         self.laser_list.update()
         for laser in self.laser_list:
             if laser.left > self.width:
+                laser.remove_from_sprite_lists()
+            if arcade.check_for_collision(laser, self.enemy_word.meteor):
+                arcade.play_sound(self.explosion_sound)
                 laser.remove_from_sprite_lists()
 
     def on_update(self, delta_time):
@@ -118,9 +122,12 @@ class Word:
         self.batch = Batch()
         self.text_list = []
         for c in self.characters:
-            text = arcade.Text(c, x, y, color=unmatched_color, font_size=font_size, batch=self.batch)
+            text = arcade.Text(c, x, y, color=unmatched_color, font_size=font_size, batch=self.batch, anchor_y='center')
             x = text.right
             self.text_list.append(text)
+        self.meteor = arcade.Sprite(":resources:/images/space_shooter/meteorGrey_med1.png")
+        self.meteor.right = self.text_list[0].left - 5
+        self.meteor.center_y = (self.text_list[0].top + self.text_list[0].bottom) / 2
 
     def match(self, other):
         for i, c in enumerate(other):
@@ -138,6 +145,7 @@ class Word:
     
     def draw(self):
         self.batch.draw()
+        arcade.draw_sprite(self.meteor)
 
 
 def main():
