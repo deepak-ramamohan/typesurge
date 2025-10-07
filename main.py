@@ -11,31 +11,46 @@ class GameView(arcade.Window):
         self.text_box = None
         self.current_word = ""
         self.input = ""
+        self.laser_sound = arcade.Sound(":resources:/sounds/hit2.wav")
 
     def setup(self):
         self.player_sprite = arcade.Sprite(":resources:/images/space_shooter/playerShip1_blue.png", angle=90)
         self.player_sprite.position = [100, self.height // 2]
         self.current_word = self._get_word()
-        # self.text_box = arcade.Text(self.current_word, align="center", font_size=24, x=800, y=360)
         self.input = ""
-
-        self.temp = Word(self.current_word, 800, 360)
+        self.laser_list = arcade.SpriteList()
+        self.enemy_word = Word(self.current_word, 800, 360)
 
     def on_draw(self):
         self.clear()
-
+        self.laser_list.draw()
         arcade.draw_sprite(self.player_sprite)
+        self.enemy_word.draw()
 
-        self.temp.draw()
+    def _fire_laser(self):
+        laser = arcade.Sprite(":resources:/images/space_shooter/laserBlue01.png")
+        laser.center_y = self.player_sprite.center_y
+        laser.left = self.player_sprite.right
+        laser.change_x = 40
+        self.laser_list.append(laser)
+        arcade.play_sound(self.laser_sound)
+
+    def _update_laser(self):
+        self.laser_list.update()
+        for laser in self.laser_list:
+            if laser.left > self.width:
+                laser.remove_from_sprite_lists()
 
     def on_update(self, delta_time):
-        match = self.temp.match(self.input)
+        self._update_laser()
+        match = self.enemy_word.match(self.input)
         if match == "mismatch":
             self.input = ""
         elif match == "full":
             self.input = ""
+            self._fire_laser()
             self.current_word = self._get_word()
-            self.temp = Word(self.current_word, 800, 360)
+            self.enemy_word = Word(self.current_word, 800, 360)
             
     def on_key_press(self, symbol, modifiers):
         key_mapping = {
