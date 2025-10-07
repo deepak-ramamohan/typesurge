@@ -3,7 +3,7 @@ import arcade
 # Constants
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
-WINDOW_TITLE = "Typing game"
+WINDOW_TITLE = "Arcade Tutorial - Platformer"
 TILE_SCALING = 0.5
 PLAYER_MOVEMENT_SPEED = 5
 GRAVITY = 1
