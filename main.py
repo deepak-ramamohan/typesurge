@@ -1,5 +1,6 @@
 import arcade
 import random
+import math
 from pyglet.graphics import Batch
 
 
@@ -7,10 +8,16 @@ class GameView(arcade.Window):
     
     def __init__(self, width = 1280, height = 720, title = "Typing Game"):
         super().__init__(width, height, title)
+        # self.word_list = ["hello", "world", "the", "quick", "brown", "fox", "jumps", 
+        #                   "over", "lazy", "dog"]
+        self.word_list = load_words()
         self.player_sprite = None
         self.input = ""
         self.explosion_list = None
         self._load_explosion_texture_list()
+        self.ENEMY_COUNT_MIN = 2
+        self.ENEMY_COUNT_MAX = 5
+        self.LASER_SPEED = 40
         self.laser_sound = arcade.Sound(":resources:/sounds/laser2.wav")
         self.explosion_sound = arcade.Sound(":resources:/sounds/explosion2.wav")
         self.game_over_sound = arcade.Sound(":resources:/sounds/gameover3.wav")
@@ -26,8 +33,6 @@ class GameView(arcade.Window):
         self.laser_list = arcade.SpriteList()
         self.explosion_list = arcade.SpriteList()
         self.enemy_word_list = EnemyWordList()
-        enemy_word = EnemyWord(self._get_word(), 800, 360)
-        self.enemy_word_list.append(enemy_word)
 
     def on_draw(self):
         self.clear()
@@ -36,13 +41,52 @@ class GameView(arcade.Window):
         self.enemy_word_list.draw()
         self.explosion_list.draw()
 
-    def _fire_laser(self):
+    def _spawn_enemies(self):
+        """
+        Keep spawning enemies to ensure that the count is between ENEMY_COUNT_MIN and ENEMY_COUNT_MAX
+        """
+        current_enemy_count = len(self.enemy_word_list)
+        count_target = self.ENEMY_COUNT_MIN if random.random() <= 0.8 else self.ENEMY_COUNT_MAX
+        while current_enemy_count < count_target:
+            enemy_word = EnemyWord(
+                self._get_word(), 
+                position=self._get_enemy_spawn_position_at_random(), 
+                target=self.player_sprite.position
+            )
+            self.enemy_word_list.append(enemy_word)
+            current_enemy_count += 1
+
+    def _get_enemy_spawn_position_at_random(self):
+        """
+        Get coordinates for an enemy spawn around the player in an arc. The steps are:
+        1. Choose an angle at random, say between -20 degrees and +20 degrees (to the right of the player)
+        2. Check the edge of the screen at which to spawn - top, right or bottom
+        3. Provide some offset, so that the spawn happens offscreen
+        4. Return the coordinates (x, y)
+        """
+        ANGLE_RANGE_DEGREES = 45
+        OFFSCREEN_SPAWN_OFFSET_PIXELS = 30
+        angle_degrees = random.uniform(-ANGLE_RANGE_DEGREES/2, ANGLE_RANGE_DEGREES/2)
+        x_distance_to_edge = self.width - self.player_sprite.center_x
+        cutoff_angle_degrees = math.degrees(math.atan2(self.height/2, x_distance_to_edge))
+        if -cutoff_angle_degrees <= angle_degrees <= cutoff_angle_degrees:
+            x = self.width + OFFSCREEN_SPAWN_OFFSET_PIXELS
+            y = self.player_sprite.center_y + x_distance_to_edge * math.tan(math.radians(angle_degrees))
+        else:
+            x = x_distance_to_edge * math.cos(math.radians(angle_degrees))
+            y = self.height + OFFSCREEN_SPAWN_OFFSET_PIXELS if angle_degrees > 0 else -OFFSCREEN_SPAWN_OFFSET_PIXELS
+        return x, y
+
+    def _fire_laser_at(self, enemy_word):
         laser = arcade.Sprite(":resources:/images/space_shooter/laserBlue01.png")
         laser.center_y = self.player_sprite.center_y
         laser.left = self.player_sprite.right
-        laser.change_x = 40
+        theta = calculate_angle(laser.position, enemy_word.position)
+        laser.velocity = [self.LASER_SPEED * math.cos(theta), self.LASER_SPEED * math.sin(theta)]
+        laser.angle = math.degrees(2 * math.pi - theta)
         self.laser_list.append(laser)
         arcade.play_sound(self.laser_sound, volume=self.SOUND_VOLUME)
+        enemy_word.reset_color()
 
     def _load_explosion_texture_list(self):
         spritesheet = arcade.load_spritesheet(":resources:images/spritesheets/explosion.png")
@@ -52,13 +96,15 @@ class GameView(arcade.Window):
             count=16*10
         )
 
-    def _create_explosion_at_position(self, position):
-        explosion = Explosion(self.explosion_texture_list)
-        explosion.position = position
-        # explosion.update()
-        self.explosion_list.append(explosion)
+    def _create_explosions_at_sprites(self, sprites_list: list[arcade.Sprite]) -> None:
+        for sprite in sprites_list:
+            arcade.play_sound(self.explosion_sound, volume=self.SOUND_VOLUME)
+            explosion = Explosion(self.explosion_texture_list)
+            explosion.position = sprite.position
+            self.explosion_list.append(explosion)
+            sprite.remove_from_sprite_lists()
 
-    def _update_laser(self):
+    def _update_laser(self, delta_time):
         self.laser_list.update()
         for laser in self.laser_list:
             if laser.left > self.width:
@@ -66,31 +112,34 @@ class GameView(arcade.Window):
             collisions = arcade.check_for_collision_with_list(laser, self.enemy_word_list)
             if collisions:
                 laser.remove_from_sprite_lists()
-                arcade.play_sound(self.explosion_sound, volume=self.SOUND_VOLUME)
-                for enemy_word in collisions:
-                    self._create_explosion_at_position(enemy_word.position)
-                    enemy_word.remove_from_sprite_lists()
+                self._create_explosions_at_sprites(collisions)
 
     def _check_player_collision(self):
         collisions = arcade.check_for_collision_with_list(self.player_sprite, self.enemy_word_list)
         if collisions:
-            arcade.play_sound(self.game_over_sound)
-            self.setup()
+            self._create_explosions_at_sprites(collisions)
 
-    def on_update(self, delta_time):
-        self._check_player_collision()
-        self._update_laser()
-        self.explosion_list.update(delta_time=delta_time)
-        self.enemy_word_list.update(delta_time=delta_time)
+    def _check_word_matches(self):
+        mismatch_count = 0
+        full_match_count = 0
         for enemy_word in self.enemy_word_list:
             matching_result = enemy_word.match_text(self.input)
             if matching_result == "mismatch":
-                self.input = ""
+                mismatch_count += 1
             elif matching_result == "full":
-                self.input = ""
-                self._fire_laser()
-                next_word = self._get_word()
-                self.enemy_word_list.append(EnemyWord(next_word, 800, 360))
+                full_match_count += 1
+                self._fire_laser_at(enemy_word)
+        # If none of the words matches or there are full matches, reset the input
+        if mismatch_count == len(self.enemy_word_list) or full_match_count > 0:
+            self.input = ""
+
+    def on_update(self, delta_time):
+        self._check_player_collision()
+        self._update_laser(delta_time=delta_time)
+        self.explosion_list.update(delta_time=delta_time)
+        self.enemy_word_list.update(delta_time=delta_time)
+        self._check_word_matches()
+        self._spawn_enemies()
             
     def on_key_press(self, symbol, modifiers):
         key_mapping = {
@@ -132,9 +181,7 @@ class GameView(arcade.Window):
         self.input = self.input + key_pressed
 
     def _get_word(self):
-        word_list = ["hello", "world", "the", "quick", "brown", "fox", "jumps",
-                     "over", "lazy", "dog"]
-        return random.choice(word_list)
+        return random.choice(self.word_list)
     
 
 class EnemyWord(arcade.Sprite):
@@ -150,8 +197,8 @@ class EnemyWord(arcade.Sprite):
     def __init__(
         self, 
         word, 
-        x, 
-        y, 
+        position,
+        target, 
         MATCHED_COLOR=arcade.color.RED_ORANGE, 
         UNMATCHED_COLOR=arcade.color.WHITE, 
         font_size=24
@@ -163,26 +210,28 @@ class EnemyWord(arcade.Sprite):
             ":resources:/images/space_shooter/meteorGrey_med2.png"
         ]
         self.meteor_sprite = random.choice(self.METEOR_SPRITES)
+        x, y = position
         super().__init__(self.meteor_sprite, center_x=x, center_y=y)
-        self.change_x = -1.5
-        self.WORD_OFFSET_PIXELS = 5
+        self.movement_speed = random.uniform(0.75, 1.25) # This needs to be a configuration in the future
+        self.change_angle = random.uniform(-5.0, 5.0)
+        theta = calculate_angle(position, target)
+        self.velocity = [self.movement_speed * math.cos(theta), self.movement_speed * math.sin(theta)]
+        self.WORD_OFFSET_PIXELS = 35
         self.word = word
         self.text_characters = [c for c in word]
         self.text_batch = Batch()
         self.text_list = []
-        # Update coordinates
-        x = self.right + self.WORD_OFFSET_PIXELS
         for c in self.text_characters:
             text = arcade.Text(c, x, y, color=UNMATCHED_COLOR, font_size=font_size, batch=self.text_batch, anchor_y='center')
-            x = text.right
             self.text_list.append(text)
+        self._update_text_character_positions()
 
     def update(self, delta_time = 1 / 60):
         super().update(delta_time=delta_time)
         self._update_text_character_positions()
 
     def _update_text_character_positions(self):
-        x, y = self.right + self.WORD_OFFSET_PIXELS, self.center_y
+        x, y = self.center_x + self.WORD_OFFSET_PIXELS, self.center_y
         for text in self.text_list:
             text.x, text.y = x, y
             x = text.right
@@ -234,11 +283,32 @@ class Explosion(arcade.Sprite):
             self.remove_from_sprite_lists()
 
 
+def calculate_angle(point1, point2):
+    """
+    Calculate the angle (in radians, anticlockwise) of the line: (point1 -> point2)
+    """
+    dy = point2[1] - point1[1]
+    dx = point2[0] - point1[0]
+    theta = math.atan2(dy, dx)
+    return theta
+
+
+def load_words():
+    """
+    Loading the words from the text file.
+    The file was downloaded from:
+    https://github.com/dwyl/english-words/blob/master/words_alpha.txt
+    """
+    word_list = []
+    with open("words_alpha.txt", 'r') as file:
+        word_list = list(set(file.read().split()))
+    return word_list
+
+
 def main():
     window = GameView()
     window.setup()
     arcade.run()
-
 
 if __name__ == "__main__":
     main()
