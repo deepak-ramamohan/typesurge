@@ -1,6 +1,8 @@
 import arcade
+from arcade.clock import GLOBAL_CLOCK
 import random
 import math
+import numpy as np
 from pyglet.graphics import Batch
 from collections import defaultdict
 
@@ -9,7 +11,7 @@ class GameView(arcade.View):
     
     def __init__(self):
         super().__init__()
-        self.word_manager = WordManager()
+        self.enemy_spawner = EnemySpawner()
         self.player_sprite = None
         self.input = ""
         self.explosion_list = None
@@ -52,34 +54,13 @@ class GameView(arcade.View):
         current_enemy_count = len(self.enemy_word_list)
         count_target = self.ENEMY_COUNT_MIN if random.random() <= 0.8 else self.ENEMY_COUNT_MAX
         while current_enemy_count < count_target:
-            enemy_word = EnemyWord(
-                self.word_manager.generate_word(min_character_count=4, max_character_count=7), 
-                position=self._get_enemy_spawn_position_at_random(), 
-                target=self.player_sprite.position
+            enemy_word = self.enemy_spawner.spawn_enemy(
+                player_position=self.player_sprite.position,
+                window_width=self.width,
+                window_height=self.height
             )
             self.enemy_word_list.append(enemy_word)
-            current_enemy_count += 1
-
-    def _get_enemy_spawn_position_at_random(self):
-        """
-        Get coordinates for an enemy spawn around the player in an arc. The steps are:
-        1. Choose an angle at random, say between -20 degrees and +20 degrees (to the right of the player)
-        2. Check the edge of the screen at which to spawn - top, right or bottom
-        3. Provide some offset, so that the spawn happens offscreen
-        4. Return the coordinates (x, y)
-        """
-        ANGLE_RANGE_DEGREES = 45
-        OFFSCREEN_SPAWN_OFFSET_PIXELS = 30
-        angle_degrees = random.uniform(-ANGLE_RANGE_DEGREES/2, ANGLE_RANGE_DEGREES/2)
-        x_distance_to_edge = self.width - self.player_sprite.center_x
-        cutoff_angle_degrees = math.degrees(math.atan2(self.height/2, x_distance_to_edge))
-        if -cutoff_angle_degrees <= angle_degrees <= cutoff_angle_degrees:
-            x = self.width + OFFSCREEN_SPAWN_OFFSET_PIXELS
-            y = self.player_sprite.center_y + x_distance_to_edge * math.tan(math.radians(angle_degrees))
-        else:
-            x = x_distance_to_edge * math.cos(math.radians(angle_degrees))
-            y = self.height + OFFSCREEN_SPAWN_OFFSET_PIXELS if angle_degrees > 0 else -OFFSCREEN_SPAWN_OFFSET_PIXELS
-        return x, y
+            current_enemy_count += 1    
 
     def _fire_laser_at(self, enemy_word):
         laser = arcade.Sprite(":resources:/images/space_shooter/laserBlue01.png")
@@ -113,7 +94,7 @@ class GameView(arcade.View):
             self.score += 20 * len(enemy_word.word)
         self._update_score_text()
 
-    def _update_laser(self, delta_time):
+    def _check_laser_collisions(self, delta_time):
         self.laser_list.update()
         for laser in self.laser_list:
             if laser.left > self.width:
@@ -149,7 +130,7 @@ class GameView(arcade.View):
 
     def on_update(self, delta_time):
         self._check_player_collision()
-        self._update_laser(delta_time=delta_time)
+        self._check_laser_collisions(delta_time=delta_time)
         self.explosion_list.update(delta_time=delta_time)
         self.enemy_word_list.update(delta_time=delta_time)
         self._check_word_matches()
@@ -215,7 +196,7 @@ class EnemyWord(arcade.Sprite):
         self, 
         word, 
         position,
-        target, 
+        target_position, 
         MATCHED_COLOR=arcade.color.RED_ORANGE, 
         UNMATCHED_COLOR=arcade.color.WHITE, 
         font_size=24
@@ -231,7 +212,7 @@ class EnemyWord(arcade.Sprite):
         super().__init__(self.meteor_sprite, center_x=x, center_y=y)
         self.movement_speed = random.uniform(0.75, 1.25) # This needs to be a configuration in the future
         self.change_angle = random.uniform(-5.0, 5.0)
-        theta = calculate_angle(position, target)
+        theta = calculate_angle(position, target_position)
         self.velocity = [self.movement_speed * math.cos(theta), self.movement_speed * math.sin(theta)]
         self.WORD_OFFSET_PIXELS = 35
         self.word = word
@@ -281,6 +262,77 @@ class EnemyWordList(arcade.SpriteList):
         for enemy_word in self:
             arcade.draw_sprite(enemy_word)
             enemy_word.text_batch.draw()
+
+
+class EnemySpawner():
+
+    def __init__(self):
+        self.word_manager = WordManager()
+        self.ANGLE_RANGE_DEGREES = 45
+        self.OFFSCREEN_SPAWN_OFFSET_PIXELS = 30
+        self.SPAWN_POINTS_COUNT = 9  # Number of distinct spawn points
+        self.spawn_angles = np.linspace(
+            -self.ANGLE_RANGE_DEGREES/2, 
+            self.ANGLE_RANGE_DEGREES/2,
+            self.SPAWN_POINTS_COUNT
+        )
+        self.SPAWN_COOLDOWN_SECONDS = 5
+        self.recently_spawned = {}  # key: point index, value: spawn time
+        self.available_indexes = set(range(self.SPAWN_POINTS_COUNT))
+
+    def _get_spawn_angle(self):
+        self._update_available_indexes()
+        # Choose from one of the available points (if exists)
+        if len(self.available_indexes) > 0:
+            idx = random.choice(list(self.available_indexes))
+            # Remove from available indexes
+            self.available_indexes.remove(idx)
+        else:
+            idx = random.choice(list(range(self.SPAWN_POINTS_COUNT)))
+        # Update recently spawned time
+        self.recently_spawned[idx] = GLOBAL_CLOCK.time
+        return self.spawn_angles[idx]
+
+    def _update_available_indexes(self):
+        """
+        Iterate through the recent indexes and make them available if their cooldown has expired
+        """
+        for idx in list(self.recently_spawned.keys()):
+            if GLOBAL_CLOCK.time_since(self.recently_spawned[idx]) > self.SPAWN_COOLDOWN_SECONDS:
+                self.available_indexes.add(idx)
+                del self.recently_spawned[idx]
+        
+    def _get_enemy_spawn_position_at_random(self, player_position, window_width, window_height):
+        """
+        Get coordinates for an enemy spawn around the player in an arc. The steps are:
+        1. Choose an angle at random, say between -20 degrees and +20 degrees (to the right of the player).
+            Updated logic: choose from a discrete set of spawn angles. Also considers whether there was
+            a spawn there recently.
+        2. Check the edge of the screen at which to spawn - top, right or bottom
+        3. Provide some offset, so that the spawn happens offscreen
+        4. Return the coordinates (x, y)
+        """
+        angle_degrees = self._get_spawn_angle()
+        x_distance_to_edge = window_width - player_position[0]
+        cutoff_angle_degrees = math.degrees(math.atan2(window_height/2, x_distance_to_edge))
+        if -cutoff_angle_degrees <= angle_degrees <= cutoff_angle_degrees:
+            x = window_width + self.OFFSCREEN_SPAWN_OFFSET_PIXELS
+            y = player_position[1] + x_distance_to_edge * math.tan(math.radians(angle_degrees))
+        else:
+            x = player_position[0] + (window_height / (2 * math.tan(math.radians(abs(angle_degrees)))))
+            if angle_degrees > 0:
+                y = window_height + self.OFFSCREEN_SPAWN_OFFSET_PIXELS
+            else:
+                y = -self.OFFSCREEN_SPAWN_OFFSET_PIXELS
+        return x, y
+    
+    def spawn_enemy(self, player_position, window_width, window_height):
+        enemy_word = EnemyWord(
+            self.word_manager.generate_word(min_character_count=4, max_character_count=7), 
+            position=self._get_enemy_spawn_position_at_random(player_position, window_width, window_height), 
+            target_position=player_position
+        )
+        return enemy_word
 
 
 class Explosion(arcade.Sprite):
