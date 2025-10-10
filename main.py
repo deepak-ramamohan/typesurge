@@ -13,6 +13,8 @@ class GameView(arcade.View):
         self.player_sprite = None
         self.input = ""
         self.explosion_list = None
+        self.score = 0
+        self.score_text = arcade.Text("", 10, 15, font_size=20, bold=True)
         self._load_explosion_texture_list()
         self.ENEMY_COUNT_MIN = 2
         self.ENEMY_COUNT_MAX = 5
@@ -29,6 +31,8 @@ class GameView(arcade.View):
         self.player_sprite = arcade.Sprite(":resources:/images/space_shooter/playerShip1_blue.png", angle=90)
         self.player_sprite.position = [75, self.height // 2]
         self.input = ""
+        self.score = 0
+        self._update_score_text()
         self.laser_list = arcade.SpriteList()
         self.explosion_list = arcade.SpriteList()
         self.enemy_word_list = EnemyWordList()
@@ -39,6 +43,7 @@ class GameView(arcade.View):
         arcade.draw_sprite(self.player_sprite)
         self.enemy_word_list.draw()
         self.explosion_list.draw()
+        self.score_text.draw()
 
     def _spawn_enemies(self):
         """
@@ -103,6 +108,11 @@ class GameView(arcade.View):
             self.explosion_list.append(explosion)
             sprite.remove_from_sprite_lists()
 
+    def _add_scores_from_words(self, enemy_words):
+        for enemy_word in enemy_words:
+            self.score += 20 * len(enemy_word.word)
+        self._update_score_text()
+
     def _update_laser(self, delta_time):
         self.laser_list.update()
         for laser in self.laser_list:
@@ -111,6 +121,7 @@ class GameView(arcade.View):
             collisions = arcade.check_for_collision_with_list(laser, self.enemy_word_list)
             if collisions:
                 laser.remove_from_sprite_lists()
+                self._add_scores_from_words(collisions)
                 self._create_explosions_at_sprites(collisions)
 
     def _check_player_collision(self):
@@ -119,7 +130,7 @@ class GameView(arcade.View):
             self._create_explosions_at_sprites(collisions)
             # TO BE UPDATED
             # For now, show game over screen even if a single word hits the player
-            game_over_view = GameOverView(0)
+            game_over_view = GameOverView(self.score)
             self.window.show_view(game_over_view)
 
     def _check_word_matches(self):
@@ -143,6 +154,9 @@ class GameView(arcade.View):
         self.enemy_word_list.update(delta_time=delta_time)
         self._check_word_matches()
         self._spawn_enemies()
+
+    def _update_score_text(self):
+        self.score_text.text = f"Score: {self.score}"
             
     def on_key_press(self, symbol, modifiers):
         if symbol == arcade.key.ESCAPE:
@@ -377,10 +391,18 @@ class PauseView(arcade.View):
             font_size=40,
             batch=self.text_batch
         )
+        self.score_text = arcade.Text(
+            f"Your Score: {self.game_view.score}", 
+            x = self.title_text.x,
+            y = self.title_text.y - 50,
+            anchor_x="center",
+            font_size=28,
+            batch=self.text_batch
+        )
         self.instruction_text = arcade.Text(
             "Press ENTER to resume or ESCAPE to quit", 
             x = self.title_text.x,
-            y = self.title_text.y - 50,
+            y = self.title_text.y - 100,
             anchor_x="center",
             font_size=20,
             batch=self.text_batch
@@ -418,9 +440,9 @@ class GameOverView(arcade.View):
         self.score_text = arcade.Text(
             f"Your Score: {self.score}", 
             x = self.title_text.x,
-            y = self.title_text.y - 60,
+            y = self.title_text.y - 50,
             anchor_x="center",
-            font_size=30,
+            font_size=28,
             batch=self.text_batch
         )
         self.instruction_text = arcade.Text(
