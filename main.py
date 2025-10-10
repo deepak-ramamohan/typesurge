@@ -12,11 +12,12 @@ class GameView(arcade.View):
     def __init__(self):
         super().__init__()
         self.enemy_spawner = EnemySpawner()
-        self.player_sprite = None
+        self.player = Player(center_x=75, center_y=self.height//2)
+        self.player_lives_text = arcade.Text("", 10, 15, font_size=20, bold=True)
         self.input = ""
         self.explosion_list = None
         self.score = 0
-        self.score_text = arcade.Text("", 10, 15, font_size=20, bold=True)
+        self.score_text = arcade.Text("", 10, 40, font_size=20, bold=True)
         self._load_explosion_texture_list()
         self.ENEMY_COUNT_MIN = 2
         self.ENEMY_COUNT_MAX = 5
@@ -30,9 +31,9 @@ class GameView(arcade.View):
         arcade.play_sound(self.laser_sound, volume=0)
 
     def setup(self):
-        self.player_sprite = arcade.Sprite(":resources:/images/space_shooter/playerShip1_blue.png", angle=90)
-        self.player_sprite.position = [75, self.height // 2]
         self.input = ""
+        self.player.reset_lives()
+        self._update_player_lives_text()
         self.score = 0
         self._update_score_text()
         self.laser_list = arcade.SpriteList()
@@ -42,10 +43,11 @@ class GameView(arcade.View):
     def on_draw(self):
         self.clear()
         self.laser_list.draw()
-        arcade.draw_sprite(self.player_sprite)
+        arcade.draw_sprite(self.player)
         self.enemy_word_list.draw()
         self.explosion_list.draw()
         self.score_text.draw()
+        self.player_lives_text.draw()
 
     def _spawn_enemies(self):
         """
@@ -55,7 +57,7 @@ class GameView(arcade.View):
         count_target = self.ENEMY_COUNT_MIN if random.random() <= 0.8 else self.ENEMY_COUNT_MAX
         while current_enemy_count < count_target:
             enemy_word = self.enemy_spawner.spawn_enemy(
-                player_position=self.player_sprite.position,
+                player_position=self.player.position,
                 window_width=self.width,
                 window_height=self.height
             )
@@ -64,8 +66,8 @@ class GameView(arcade.View):
 
     def _fire_laser_at(self, enemy_word):
         laser = arcade.Sprite(":resources:/images/space_shooter/laserBlue01.png")
-        laser.center_y = self.player_sprite.center_y
-        laser.left = self.player_sprite.right
+        laser.center_y = self.player.center_y
+        laser.left = self.player.right
         theta = calculate_angle(laser.position, enemy_word.position)
         laser.velocity = [self.LASER_SPEED * math.cos(theta), self.LASER_SPEED * math.sin(theta)]
         laser.angle = math.degrees(2 * math.pi - theta)
@@ -106,13 +108,14 @@ class GameView(arcade.View):
                 self._create_explosions_at_sprites(collisions)
 
     def _check_player_collision(self):
-        collisions = arcade.check_for_collision_with_list(self.player_sprite, self.enemy_word_list)
+        collisions = arcade.check_for_collision_with_list(self.player, self.enemy_word_list)
         if collisions:
             self._create_explosions_at_sprites(collisions)
-            # TO BE UPDATED
-            # For now, show game over screen even if a single word hits the player
-            game_over_view = GameOverView(self.score)
-            self.window.show_view(game_over_view)
+            self.player.lives_remaining -= 1
+            self._update_player_lives_text()
+            if self.player.lives_remaining <= 0:
+                game_over_view = GameOverView(self.score)
+                self.window.show_view(game_over_view)
 
     def _check_word_matches(self):
         mismatch_count = 0
@@ -138,6 +141,9 @@ class GameView(arcade.View):
 
     def _update_score_text(self):
         self.score_text.text = f"Score: {self.score}"
+
+    def _update_player_lives_text(self):
+        self.player_lives_text.text = f"Lives: {self.player.lives_remaining}/{self.player.MAX_LIVES}"
             
     def on_key_press(self, symbol, modifiers):
         if symbol == arcade.key.ESCAPE:
@@ -180,6 +186,22 @@ class GameView(arcade.View):
         }
         key_pressed = key_mapping.get(symbol, "")
         self.input = self.input + key_pressed
+
+
+class Player(arcade.Sprite):
+
+    def __init__(self, center_x, center_y):
+        super().__init__(
+            ":resources:/images/space_shooter/playerShip1_blue.png",
+            center_x=center_x,
+            center_y=center_y,
+            angle=90
+        )
+        self.MAX_LIVES = 3
+        self.lives_remaining = self.MAX_LIVES
+
+    def reset_lives(self):
+        self.lives_remaining = self.MAX_LIVES
 
 
 class EnemyWord(arcade.Sprite):
