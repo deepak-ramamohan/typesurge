@@ -5,10 +5,10 @@ from pyglet.graphics import Batch
 from collections import defaultdict
 
 
-class GameView(arcade.Window):
+class GameView(arcade.View):
     
-    def __init__(self, width = 1280, height = 720, title = "Typing Game"):
-        super().__init__(width, height, title)
+    def __init__(self):
+        super().__init__()
         self.word_manager = WordManager()
         self.player_sprite = None
         self.input = ""
@@ -117,6 +117,10 @@ class GameView(arcade.Window):
         collisions = arcade.check_for_collision_with_list(self.player_sprite, self.enemy_word_list)
         if collisions:
             self._create_explosions_at_sprites(collisions)
+            # TO BE UPDATED
+            # For now, show game over screen even if a single word hits the player
+            game_over_view = GameOverView(0)
+            self.window.show_view(game_over_view)
 
     def _check_word_matches(self):
         mismatch_count = 0
@@ -141,6 +145,9 @@ class GameView(arcade.Window):
         self._spawn_enemies()
             
     def on_key_press(self, symbol, modifiers):
+        if symbol == arcade.key.ESCAPE:
+            pause_view = PauseView(self)
+            self.window.show_view(pause_view)
         key_mapping = {
             arcade.key.A: "a",
             arcade.key.B: "b",
@@ -316,11 +323,133 @@ class WordManager:
         character_count = random.randint(min_character_count, max_character_count)
         word = random.choice(self.character_count_dict[character_count])
         return word
+    
+
+class WelcomeView(arcade.View):
+
+    def __init__(self):
+        super().__init__()
+        self.text_batch = Batch()
+        self.title_text = arcade.Text(
+            "Welcome to AI Typing Trainer!",
+            x = self.window.width // 2,
+            y = self.window.height // 2,
+            anchor_x="center",
+            font_size=40,
+            batch=self.text_batch
+        )
+        self.instruction_text = arcade.Text(
+            "Press ENTER to start or ESCAPE to quit", 
+            x = self.title_text.x,
+            y = self.title_text.y - 50,
+            anchor_x="center",
+            font_size=20,
+            batch=self.text_batch
+        )
+
+    def on_show_view(self):
+        self.window.default_camera.use()
+
+    def on_draw(self):
+        self.clear() # This is IMPORTANT! The text looks jagged without this!
+        self.text_batch.draw()
+
+    def on_key_press(self, symbol, modifiers):
+        if symbol == arcade.key.ENTER:
+            game_view = GameView()
+            game_view.setup()
+            self.window.show_view(game_view)
+        elif symbol == arcade.key.ESCAPE:
+            arcade.exit()
+
+
+class PauseView(arcade.View):
+
+    def __init__(self, game_view):
+        super().__init__()
+        self.game_view = game_view
+        self.text_batch = Batch()
+        self.title_text = arcade.Text(
+            "Game Paused",
+            x = self.window.width // 2,
+            y = self.window.height // 2,
+            anchor_x="center",
+            font_size=40,
+            batch=self.text_batch
+        )
+        self.instruction_text = arcade.Text(
+            "Press ENTER to resume or ESCAPE to quit", 
+            x = self.title_text.x,
+            y = self.title_text.y - 50,
+            anchor_x="center",
+            font_size=20,
+            batch=self.text_batch
+        )
+
+    def on_show_view(self):
+        self.window.default_camera.use()
+
+    def on_draw(self):
+        self.clear() # This is IMPORTANT! The text looks jagged without this!
+        self.text_batch.draw()
+
+    def on_key_press(self, symbol, modifiers):
+        if symbol == arcade.key.ENTER:
+            self.window.show_view(self.game_view)
+        elif symbol == arcade.key.ESCAPE:
+            welcome_view = WelcomeView()
+            self.window.show_view(welcome_view)
+
+
+class GameOverView(arcade.View):
+
+    def __init__(self, score):
+        super().__init__()
+        self.score = score
+        self.text_batch = Batch()
+        self.title_text = arcade.Text(
+            "GAME OVER!",
+            x = self.window.width // 2,
+            y = self.window.height // 2,
+            anchor_x="center",
+            font_size=40,
+            batch=self.text_batch
+        )
+        self.score_text = arcade.Text(
+            f"Your Score: {self.score}", 
+            x = self.title_text.x,
+            y = self.title_text.y - 60,
+            anchor_x="center",
+            font_size=30,
+            batch=self.text_batch
+        )
+        self.instruction_text = arcade.Text(
+            "Press any key to continue", 
+            x = self.title_text.x,
+            y = self.title_text.y - 100,
+            anchor_x="center",
+            font_size=20,
+            batch=self.text_batch
+        )
+
+    def on_show_view(self):
+        self.window.default_camera.use()
+
+    def on_draw(self):
+        self.clear() # This is IMPORTANT! The text looks jagged without this!
+        self.text_batch.draw()
+
+    def on_key_press(self, symbol, modifiers):
+        welcome_view = WelcomeView()
+        self.window.show_view(welcome_view)
 
 
 def main():
-    window = GameView()
-    window.setup()
+    window = arcade.Window(1280, 720, "AI Typing Trainer")
+    # game_view = GameView()
+    # game_view.setup()
+    welcome_view = WelcomeView()
+    window.show_view(welcome_view)
     arcade.run()
 
 if __name__ == "__main__":
