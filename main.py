@@ -74,7 +74,7 @@ class SpaceShooterGameView(arcade.View):
         laser = arcade.Sprite(":resources:/images/space_shooter/laserBlue01.png")
         laser.center_y = self.player.center_y
         laser.left = self.player.right
-        theta = calculate_angle(laser.position, enemy_word.position)
+        theta = calculate_angle_between_points(laser.position, enemy_word.position)
         laser.velocity = [self.LASER_SPEED * math.cos(theta), self.LASER_SPEED * math.sin(theta)]
         laser.angle = math.degrees(2 * math.pi - theta)
         self.laser_list.append(laser)
@@ -240,7 +240,7 @@ class EnemyWord(arcade.Sprite):
         super().__init__(self.meteor_sprite, center_x=x, center_y=y)
         self.movement_speed = random.uniform(0.75, 1.25) # This needs to be a configuration in the future
         self.change_angle = random.uniform(-5.0, 5.0)
-        theta = calculate_angle(position, target_position)
+        theta = calculate_angle_between_points(position, target_position)
         self.velocity = [self.movement_speed * math.cos(theta), self.movement_speed * math.sin(theta)]
         self.WORD_OFFSET_PIXELS = 35
         self.word = word
@@ -380,7 +380,7 @@ class Explosion(arcade.Sprite):
             self.remove_from_sprite_lists()
 
 
-def calculate_angle(point1, point2):
+def calculate_angle_between_points(point1, point2):
     """
     Calculate the angle (in radians, anticlockwise) of the line: (point1 -> point2)
     """
@@ -640,10 +640,8 @@ class GameOverView(arcade.View):
 def main():
     arcade.resources.load_kenney_fonts()
     window = arcade.Window(1280, 720, "AI Typing Trainer")
-    # game_view = GameView()
-    # game_view.setup()
-    welcome_view = MainMenuView()
-    window.show_view(welcome_view)
+    main_menu_view = MainMenuView()
+    window.show_view(main_menu_view)
     arcade.run()
 
 if __name__ == "__main__":
