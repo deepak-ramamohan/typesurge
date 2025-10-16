@@ -1,5 +1,11 @@
 import arcade
 from arcade.clock import GLOBAL_CLOCK
+from arcade.gui import (
+    UIManager,
+    UIAnchorLayout,
+    UIBoxLayout, 
+    UIFlatButton
+)
 import random
 import math
 import numpy as np
@@ -7,7 +13,7 @@ from pyglet.graphics import Batch
 from collections import defaultdict
 
 
-class GameView(arcade.View):
+class SpaceShooterGameView(arcade.View):
     
     def __init__(self):
         super().__init__()
@@ -413,7 +419,7 @@ class WordManager:
         return word
     
 
-class WelcomeView(arcade.View):
+class MainMenuView(arcade.View):
 
     def __init__(self):
         super().__init__()
@@ -421,7 +427,7 @@ class WelcomeView(arcade.View):
         self.title_text = arcade.Text(
             "Welcome to AI Typing Trainer!",
             x = self.window.width // 2,
-            y = self.window.height // 2,
+            y = self.window.height // 2 + 50,
             anchor_x="center",
             font_size=40,
             batch=self.text_batch
@@ -434,21 +440,55 @@ class WelcomeView(arcade.View):
             font_size=20,
             batch=self.text_batch
         )
+        self.ui = UIManager()
+        self.anchor = self.ui.add(UIAnchorLayout())
+        self.BUTTON_WIDTH = 200
+        
+        self.start_button = UIFlatButton(width=self.BUTTON_WIDTH, text="Start")
+        @self.start_button.event("on_click")
+        def _(event):
+            self._start_game()
+ 
+        self.quit_button = UIFlatButton(width=self.BUTTON_WIDTH, text="Quit")
+        @self.quit_button.event("on_click")
+        def _(event):
+            self._quit_game()
+        
+        self.box_layout = UIBoxLayout(space_between=10)
+        self.box_layout.add(self.start_button)
+        self.box_layout.add(self.quit_button)
+        
+        self.anchor.add(
+            self.box_layout, 
+            anchor_y="top", 
+            align_y=-(self.height - self.title_text.y + 80)
+        )
 
     def on_show_view(self):
         self.window.default_camera.use()
+        self.ui.enable()
+
+    def on_hide_view(self):
+        self.ui.disable()
 
     def on_draw(self):
         self.clear() # This is IMPORTANT! The text looks jagged without this!
         self.text_batch.draw()
+        self.ui.draw()
 
     def on_key_press(self, symbol, modifiers):
         if symbol == arcade.key.ENTER:
-            game_view = GameView()
-            game_view.setup()
-            self.window.show_view(game_view)
+            self._start_game()
         elif symbol == arcade.key.ESCAPE:
-            arcade.exit()
+            self._quit_game()
+
+    def _start_game(self):
+        game_view = SpaceShooterGameView()
+        game_view.setup()
+        self.window.show_view(game_view)
+
+    def _quit_game(self):
+        arcade.exit()
 
 
 class PauseView(arcade.View):
@@ -460,7 +500,7 @@ class PauseView(arcade.View):
         self.title_text = arcade.Text(
             "Game Paused",
             x = self.window.width // 2,
-            y = self.window.height // 2,
+            y = self.window.height // 2 + 150,
             anchor_x="center",
             font_size=40,
             batch=self.text_batch
@@ -474,27 +514,60 @@ class PauseView(arcade.View):
             batch=self.text_batch
         )
         self.instruction_text = arcade.Text(
-            "Press ENTER to resume or ESCAPE to quit", 
+            "Press ENTER to resume or ESCAPE to return to main menu", 
             x = self.title_text.x,
             y = self.title_text.y - 100,
             anchor_x="center",
             font_size=20,
             batch=self.text_batch
         )
+        self.ui = UIManager()
+        self.anchor = self.ui.add(UIAnchorLayout())
+        self.BUTTON_WIDTH = 200
+
+        self.resume_button = UIFlatButton(width=self.BUTTON_WIDTH, text="Resume")
+        @self.resume_button.event("on_click")
+        def _(event):
+            self._resume()
+
+        self.quit_to_main_menu_button = UIFlatButton(width=self.BUTTON_WIDTH, text="Quit to Main Menu", multiline=True)
+        @self.quit_to_main_menu_button.event("on_click")
+        def _(event):
+            self._return_to_main_menu()
+
+        self.box_layout = UIBoxLayout(space_between=10)
+        self.box_layout.add(self.resume_button)
+        self.box_layout.add(self.quit_to_main_menu_button)
+        self.anchor.add(
+            self.box_layout,
+            anchor_y="top",
+            align_y=-(self.height - self.title_text.y + 150)
+        )
 
     def on_show_view(self):
         self.window.default_camera.use()
+        self.ui.enable()
+
+    def on_hide_view(self):
+        self.ui.disable()
 
     def on_draw(self):
         self.clear() # This is IMPORTANT! The text looks jagged without this!
         self.text_batch.draw()
+        self.ui.draw()
 
     def on_key_press(self, symbol, modifiers):
         if symbol == arcade.key.ENTER:
-            self.window.show_view(self.game_view)
+            self._resume()
         elif symbol == arcade.key.ESCAPE:
-            welcome_view = WelcomeView()
-            self.window.show_view(welcome_view)
+            self._return_to_main_menu()
+
+    def _resume(self):
+        self.window.show_view(self.game_view)
+
+    def _return_to_main_menu(self):
+        main_menu_view = MainMenuView()
+        self.window.show_view(main_menu_view)
 
 
 class GameOverView(arcade.View):
@@ -506,7 +579,7 @@ class GameOverView(arcade.View):
         self.title_text = arcade.Text(
             "GAME OVER!",
             x = self.window.width // 2,
-            y = self.window.height // 2,
+            y = self.window.height // 2 + 50,
             anchor_x="center",
             font_size=40,
             batch=self.text_batch
@@ -528,23 +601,48 @@ class GameOverView(arcade.View):
             batch=self.text_batch
         )
 
+        self.ui = UIManager()
+        self.anchor = self.ui.add(UIAnchorLayout())
+        self.BUTTON_WIDTH = 200
+
+        self.continue_button = UIFlatButton(width=self.BUTTON_WIDTH, text="Continue")
+        @self.continue_button.event("on_click")
+        def _(event):
+            self._continue_to_main_menu()
+
+        self.box_layout = UIBoxLayout(space_between=10)
+        self.box_layout.add(self.continue_button)
+        self.anchor.add(
+            self.box_layout,
+            anchor_y="top",
+            align_y=-(self.height - self.title_text.y + 130)
+        )
+
     def on_show_view(self):
         self.window.default_camera.use()
+        self.ui.enable()
+
+    def on_hide_view(self):
+        self.ui.disable()
 
     def on_draw(self):
         self.clear() # This is IMPORTANT! The text looks jagged without this!
         self.text_batch.draw()
+        self.ui.draw()
 
     def on_key_press(self, symbol, modifiers):
-        welcome_view = WelcomeView()
-        self.window.show_view(welcome_view)
+        self._continue_to_main_menu()
 
+    def _continue_to_main_menu(self):
+        main_menu_view = MainMenuView()
+        self.window.show_view(main_menu_view)
 
 def main():
+    arcade.resources.load_kenney_fonts()
     window = arcade.Window(1280, 720, "AI Typing Trainer")
     # game_view = GameView()
     # game_view.setup()
-    welcome_view = WelcomeView()
+    welcome_view = MainMenuView()
     window.show_view(welcome_view)
     arcade.run()
 
