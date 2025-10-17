@@ -1,5 +1,4 @@
 import arcade
-import re
 from space_shooter.word_manager import WordManager
 
 
