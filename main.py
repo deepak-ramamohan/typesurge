@@ -7,6 +7,7 @@ from arcade.gui import (
 )
 from pyglet.graphics import Batch
 from space_shooter.views import SpaceShooterGameView
+from ai_trainer.ai_trainer import AITrainerView
 
 
 class MainMenuView(arcade.View):
@@ -34,18 +35,24 @@ class MainMenuView(arcade.View):
         self.anchor = self.ui.add(UIAnchorLayout())
         self.BUTTON_WIDTH = 200
         
-        self.start_button = UIFlatButton(width=self.BUTTON_WIDTH, text="Start")
-        @self.start_button.event("on_click")
+        self.space_shooter_button = UIFlatButton(width=self.BUTTON_WIDTH, text="Space Shooter")
+        @self.space_shooter_button.event("on_click")
         def _(event):
             self._start_game()
+
+        self.ai_trainer_button = UIFlatButton(width=self.BUTTON_WIDTH, text="AI Trainer")
+        @self.ai_trainer_button.event("on_click")
+        def _(event):
+            self._start_ai_trainer()
  
         self.quit_button = UIFlatButton(width=self.BUTTON_WIDTH, text="Quit")
         @self.quit_button.event("on_click")
         def _(event):
             self._quit_game()
-        
+
         self.box_layout = UIBoxLayout(space_between=10)
-        self.box_layout.add(self.start_button)
+        self.box_layout.add(self.space_shooter_button)
+        self.box_layout.add(self.ai_trainer_button)
         self.box_layout.add(self.quit_button)
         
         self.anchor.add(
@@ -76,6 +83,11 @@ class MainMenuView(arcade.View):
         game_view = SpaceShooterGameView(self)
         game_view.setup()
         self.window.show_view(game_view)
+
+    def _start_ai_trainer(self):
+        trainer_view = AITrainerView(self)
+        trainer_view.setup()
+        self.window.show_view(trainer_view)
 
     def _quit_game(self):
         arcade.exit()
