@@ -18,35 +18,49 @@ class EnemyWord(arcade.Sprite):
 
     """
 
+    MATCHED_COLOR = arcade.color.RED_ORANGE
+    UNMATCHED_COLOR = arcade.color.WHITE
+    METEOR_SPRITE_OPTIONS = [
+        ":resources:/images/space_shooter/meteorGrey_med1.png",
+        ":resources:/images/space_shooter/meteorGrey_med2.png"
+    ]
+
     def __init__(
         self, 
         word, 
         position,
-        target_position, 
-        MATCHED_COLOR=arcade.color.RED_ORANGE, 
-        UNMATCHED_COLOR=arcade.color.WHITE, 
+        target_position,
+        movement_speed_range, 
         font_size=24
     ):
-        self.MATCHED_COLOR = MATCHED_COLOR
-        self.UNMATCHED_COLOR = UNMATCHED_COLOR
-        self.METEOR_SPRITES = [
-            ":resources:/images/space_shooter/meteorGrey_med1.png",
-            ":resources:/images/space_shooter/meteorGrey_med2.png"
-        ]
-        self.meteor_sprite = random.choice(self.METEOR_SPRITES)
+        self.meteor_sprite = random.choice(self.METEOR_SPRITE_OPTIONS)
         x, y = position
         super().__init__(self.meteor_sprite, center_x=x, center_y=y)
-        self.movement_speed = random.uniform(0.75, 1.25) # This needs to be a configuration in the future
+        self.movement_speed = random.uniform(
+            movement_speed_range[0],
+            movement_speed_range[1]
+        )
         self.change_angle = random.uniform(-5.0, 5.0)
         theta = calculate_angle_between_points(position, target_position)
-        self.velocity = [self.movement_speed * math.cos(theta), self.movement_speed * math.sin(theta)]
+        self.velocity = [
+            self.movement_speed * math.cos(theta), 
+            self.movement_speed * math.sin(theta)
+        ]
         self.WORD_OFFSET_PIXELS = 35
         self.word = word
         self.text_characters = [c for c in word]
         self.text_batch = Batch()
         self.text_list = []
         for c in self.text_characters:
-            text = arcade.Text(c, x, y, color=UNMATCHED_COLOR, font_size=font_size, batch=self.text_batch, anchor_y='center')
+            text = arcade.Text(
+                text=c, 
+                x=x, 
+                y=y, 
+                color=self.UNMATCHED_COLOR, 
+                font_size=font_size, 
+                batch=self.text_batch, 
+                anchor_y='center'
+            )
             self.text_list.append(text)
         self._update_text_character_positions()
 
@@ -81,8 +95,8 @@ class EnemyWord(arcade.Sprite):
 
 class EnemyWordList(arcade.SpriteList):
 
-    def __init__(self, use_spatial_hash = False, spatial_hash_cell_size = 128, atlas = None, capacity = 100, lazy = False, visible = True):
-        super().__init__(use_spatial_hash, spatial_hash_cell_size, atlas, capacity, lazy, visible)
+    def __init__(self):
+        super().__init__()
 
     def draw(self):
         for enemy_word in self:
@@ -92,17 +106,18 @@ class EnemyWordList(arcade.SpriteList):
 
 class EnemySpawner():
 
+    ANGLE_RANGE_DEGREES = 45
+    OFFSCREEN_SPAWN_OFFSET_PIXELS = 30
+    SPAWN_POINTS_COUNT = 9  # Number of distinct spawn points
+    SPAWN_COOLDOWN_SECONDS = 5
+
     def __init__(self):
         self.word_manager = WordManager()
-        self.ANGLE_RANGE_DEGREES = 45
-        self.OFFSCREEN_SPAWN_OFFSET_PIXELS = 30
-        self.SPAWN_POINTS_COUNT = 9  # Number of distinct spawn points
         self.spawn_angles = np.linspace(
             -self.ANGLE_RANGE_DEGREES/2, 
             self.ANGLE_RANGE_DEGREES/2,
             self.SPAWN_POINTS_COUNT
         )
-        self.SPAWN_COOLDOWN_SECONDS = 5
         self.recently_spawned = {}  # key: point index, value: spawn time
         self.available_indexes = set(range(self.SPAWN_POINTS_COUNT))
 
@@ -152,10 +167,25 @@ class EnemySpawner():
                 y = -self.OFFSCREEN_SPAWN_OFFSET_PIXELS
         return x, y
     
-    def spawn_enemy(self, player_position, window_width, window_height):
+    def spawn_enemy_word(
+        self, 
+        player_position, 
+        window_width, 
+        window_height,
+        character_count_range=[4, 7],
+        movement_speed_range=[0.75, 1.25]
+    ):
         enemy_word = EnemyWord(
-            self.word_manager.generate_word(min_character_count=4, max_character_count=7), 
-            position=self._get_enemy_spawn_position_at_random(player_position, window_width, window_height), 
-            target_position=player_position
+            self.word_manager.generate_word(
+                min_character_count=character_count_range[0],
+                max_character_count=character_count_range[1]
+            ), 
+            position=self._get_enemy_spawn_position_at_random(
+                player_position, 
+                window_width, 
+                window_height
+            ), 
+            target_position=player_position,
+            movement_speed_range=movement_speed_range
         )
         return enemy_word

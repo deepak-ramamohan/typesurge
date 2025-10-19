@@ -15,9 +15,16 @@ from arcade.gui import (
 
 
 class SpaceShooterGameView(arcade.View):
+
+    BACKGROUND_COLOR = arcade.color.CHARCOAL
+    ENEMY_COUNT_RANGE = [2, 5]
+    ENEMY_WORD_CHARACTER_COUNT_RANGE = [4, 7]
+    ENEMY_MOVEMENT_SPEED_RANGE = [0.75, 1.25]
+    LASER_SPEED = 40
+    SOUND_VOLUME = 1.0
     
     def __init__(self, main_menu_view):
-        super().__init__()
+        super().__init__(background_color=self.BACKGROUND_COLOR)
         self.main_menu_view = main_menu_view
         self.enemy_spawner = EnemySpawner()
         self.player = Player(center_x=75, center_y=self.height//2)
@@ -27,13 +34,9 @@ class SpaceShooterGameView(arcade.View):
         self.score = 0
         self.score_text = arcade.Text("", 10, 40, font_size=20, bold=True)
         self._load_explosion_texture_list()
-        self.ENEMY_COUNT_MIN = 2
-        self.ENEMY_COUNT_MAX = 5
-        self.LASER_SPEED = 40
         self.laser_sound = arcade.Sound(":resources:/sounds/laser2.wav")
         self.explosion_sound = arcade.Sound(":resources:/sounds/explosion2.wav")
         self.game_over_sound = arcade.Sound(":resources:/sounds/gameover3.wav")
-        self.SOUND_VOLUME = 1.0
         # For fixing the initial sound distortion, play something at zero volume
         # Subsequent sounds will then play clearly
         arcade.play_sound(self.laser_sound, volume=0)
@@ -47,6 +50,7 @@ class SpaceShooterGameView(arcade.View):
         self.laser_list = arcade.SpriteList()
         self.explosion_list = arcade.SpriteList()
         self.enemy_word_list = EnemyWordList()
+        self._spawn_enemies()
 
     def on_draw(self):
         self.clear()
@@ -62,15 +66,70 @@ class SpaceShooterGameView(arcade.View):
         Keep spawning enemies to ensure that the count is between ENEMY_COUNT_MIN and ENEMY_COUNT_MAX
         """
         current_enemy_count = len(self.enemy_word_list)
-        count_target = self.ENEMY_COUNT_MIN if random.random() <= 0.8 else self.ENEMY_COUNT_MAX
+        count_target = random.randrange(
+            self.ENEMY_COUNT_RANGE[0], 
+            self.ENEMY_COUNT_RANGE[1] + 1
+        )
         while current_enemy_count < count_target:
-            enemy_word = self.enemy_spawner.spawn_enemy(
+            enemy_word = self.enemy_spawner.spawn_enemy_word(
                 player_position=self.player.position,
                 window_width=self.width,
-                window_height=self.height
+                window_height=self.height,
+                character_count_range=self.ENEMY_WORD_CHARACTER_COUNT_RANGE,
+                movement_speed_range=self.ENEMY_MOVEMENT_SPEED_RANGE
             )
             self.enemy_word_list.append(enemy_word)
-            current_enemy_count += 1    
+            current_enemy_count += 1
+
+    def _reset_difficulty(self):
+        self.ENEMY_COUNT_RANGE = [2, 5]
+        self.ENEMY_WORD_CHARACTER_COUNT_RANGE = [4, 7]
+        self.ENEMY_MOVEMENT_SPEED_RANGE = [0.75, 1.25]
+
+    def _update_difficulty(self):
+        if self.score < 500:
+            pass
+        elif self.score < 1000:
+            self.ENEMY_MOVEMENT_SPEED_RANGE[0] = 0.8
+        elif self.score < 1500:
+            self.ENEMY_COUNT_RANGE[0] = 3
+        elif self.score < 2000:
+            self.ENEMY_MOVEMENT_SPEED_RANGE[0] = 0.85
+        elif self.score < 3000:
+            self.ENEMY_WORD_CHARACTER_COUNT_RANGE[0] = 5
+        elif self.score < 4000:
+            self.ENEMY_MOVEMENT_SPEED_RANGE[1] = 1.35
+        elif self.score < 5000:
+            self.ENEMY_COUNT_RANGE[1] = 6
+        elif self.score < 6500:
+            self.ENEMY_MOVEMENT_SPEED_RANGE[0] = 0.9
+        elif self.score < 8000:
+            self.ENEMY_WORD_CHARACTER_COUNT_RANGE[1] = 8
+        elif self.score < 10000:
+            self.ENEMY_COUNT_RANGE[0] = 4
+        elif self.score < 12000:
+            self.ENEMY_WORD_CHARACTER_COUNT_RANGE[1] = 9
+        elif self.score < 14000:
+            self.ENEMY_MOVEMENT_SPEED_RANGE[0] = 1.0
+        elif self.score < 15000:
+            self.ENEMY_MOVEMENT_SPEED_RANGE[1] = 1.5
+        elif self.score < 17000:
+            self.ENEMY_COUNT_RANGE[1] = 7
+        elif self.score < 18500:
+            self.ENEMY_WORD_CHARACTER_COUNT_RANGE[0] = 6
+        elif self.score < 20000:
+            self.ENEMY_WORD_CHARACTER_COUNT_RANGE[1] = 11
+        elif self.score < 22500:
+            self.ENEMY_MOVEMENT_SPEED_RANGE[1] = 1.65
+        elif self.score < 25000:
+            self.ENEMY_COUNT_RANGE[0] = 5
+        elif self.score < 27500:
+            self.ENEMY_MOVEMENT_SPEED_RANGE[0] = 1.2
+        else:
+            self.ENEMY_MOVEMENT_SPEED_RANGE[1] = 2.0
+            self.ENEMY_COUNT_RANGE[1] = 9
+            self.ENEMY_WORD_CHARACTER_COUNT_RANGE[1] = 13
+        
 
     def _fire_laser_at(self, enemy_word):
         laser = arcade.Sprite(":resources:/images/space_shooter/laserBlue01.png")
@@ -114,6 +173,8 @@ class SpaceShooterGameView(arcade.View):
                 laser.remove_from_sprite_lists()
                 self._add_scores_from_words(collisions)
                 self._create_explosions_at_sprites(collisions)
+                self._spawn_enemies()
+                self._update_difficulty()
 
     def _check_player_collision(self):
         collisions = arcade.check_for_collision_with_list(self.player, self.enemy_word_list)
@@ -121,6 +182,7 @@ class SpaceShooterGameView(arcade.View):
             self._create_explosions_at_sprites(collisions)
             self.player.lives_remaining -= 1
             self._update_player_lives_text()
+            self._spawn_enemies()
             if self.player.lives_remaining <= 0:
                 game_over_view = GameOverView(self.score, self.main_menu_view)
                 self.window.show_view(game_over_view)
@@ -145,7 +207,6 @@ class SpaceShooterGameView(arcade.View):
         self.explosion_list.update(delta_time=delta_time)
         self.enemy_word_list.update(delta_time=delta_time)
         self._check_word_matches()
-        self._spawn_enemies()
 
     def _update_score_text(self):
         self.score_text.text = f"Score: {self.score}"
@@ -183,14 +244,6 @@ class PauseView(arcade.View):
             font_size=28,
             batch=self.text_batch
         )
-        self.instruction_text = arcade.Text(
-            "Press ENTER to resume or ESCAPE to return to main menu", 
-            x = self.title_text.x,
-            y = self.title_text.y - 100,
-            anchor_x="center",
-            font_size=20,
-            batch=self.text_batch
-        )
         self.ui = UIManager()
         self.anchor = self.ui.add(UIAnchorLayout())
         self.BUTTON_WIDTH = 200
@@ -211,7 +264,7 @@ class PauseView(arcade.View):
         self.anchor.add(
             self.box_layout,
             anchor_y="top",
-            align_y=-(self.height - self.title_text.y + 150)
+            align_y=-(self.height - self.title_text.y + 120)
         )
 
     def on_show_view(self):
@@ -225,12 +278,6 @@ class PauseView(arcade.View):
         self.clear() # This is IMPORTANT! The text looks jagged without this!
         self.text_batch.draw()
         self.ui.draw()
-
-    def on_key_press(self, symbol, modifiers):
-        if symbol == arcade.key.ENTER:
-            self._resume()
-        elif symbol == arcade.key.ESCAPE:
-            self._return_to_main_menu()
 
     def _resume(self):
         self.window.show_view(self.game_view)
@@ -262,14 +309,6 @@ class GameOverView(arcade.View):
             font_size=28,
             batch=self.text_batch
         )
-        self.instruction_text = arcade.Text(
-            "Press any key to continue", 
-            x = self.title_text.x,
-            y = self.title_text.y - 100,
-            anchor_x="center",
-            font_size=20,
-            batch=self.text_batch
-        )
 
         self.ui = UIManager()
         self.anchor = self.ui.add(UIAnchorLayout())
@@ -285,7 +324,7 @@ class GameOverView(arcade.View):
         self.anchor.add(
             self.box_layout,
             anchor_y="top",
-            align_y=-(self.height - self.title_text.y + 130)
+            align_y=-(self.height - self.title_text.y + 110)
         )
 
     def on_show_view(self):
@@ -299,9 +338,6 @@ class GameOverView(arcade.View):
         self.clear() # This is IMPORTANT! The text looks jagged without this!
         self.text_batch.draw()
         self.ui.draw()
-
-    def on_key_press(self, symbol, modifiers):
-        self._continue_to_main_menu()
 
     def _continue_to_main_menu(self):
         self.window.show_view(self.main_menu_view)
