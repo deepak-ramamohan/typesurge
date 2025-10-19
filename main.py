@@ -12,8 +12,10 @@ from ai_trainer.ai_trainer import AITrainerView
 
 class MainMenuView(arcade.View):
 
+    BACKGROUND_COLOR = arcade.color.BLACK
+
     def __init__(self):
-        super().__init__()
+        super().__init__(background_color=self.BACKGROUND_COLOR)
         self.text_batch = Batch()
         self.title_text = arcade.Text(
             "Welcome to AI Typing Trainer!",
