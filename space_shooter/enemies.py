@@ -20,6 +20,8 @@ class EnemyWord(arcade.Sprite):
 
     MATCHED_COLOR = arcade.color.RED_ORANGE
     UNMATCHED_COLOR = arcade.color.WHITE
+    FONT_NAME = "Pixelzone"
+    FONT_SIZE = 40
     METEOR_SPRITE_OPTIONS = [
         ":resources:/images/space_shooter/meteorGrey_med1.png",
         ":resources:/images/space_shooter/meteorGrey_med2.png"
@@ -31,7 +33,6 @@ class EnemyWord(arcade.Sprite):
         position,
         target_position,
         movement_speed_range, 
-        font_size=24
     ):
         self.meteor_sprite = random.choice(self.METEOR_SPRITE_OPTIONS)
         x, y = position
@@ -56,8 +57,9 @@ class EnemyWord(arcade.Sprite):
                 text=c, 
                 x=x, 
                 y=y, 
-                color=self.UNMATCHED_COLOR, 
-                font_size=font_size, 
+                color=self.UNMATCHED_COLOR,
+                font_name=self.FONT_NAME,
+                font_size=self.FONT_SIZE, 
                 batch=self.text_batch, 
                 anchor_y='center'
             )

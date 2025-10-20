@@ -1,16 +1,18 @@
 import arcade
 from space_shooter.word_manager import WordManager
+from utils.textures import SEPIA_BACKGROUND
+from utils.colors import BROWN
 
 
 class AITrainerView(arcade.View):
 
-    BACKGROUND_COLOR = arcade.color.ANTIQUE_WHITE
-    TARGET_TEXT_COLOR = arcade.color.BAZAAR
+    TARGET_TEXT_COLOR = BROWN
     INPUT_TEXT_COLOR = arcade.color.ANTIQUE_BRASS
     WPM_TEXT_COLOR = arcade.color.ANTIQUE_RUBY
 
     def __init__(self, main_menu_view):
-        super().__init__(background_color=self.BACKGROUND_COLOR)
+        super().__init__()
+        self.background = SEPIA_BACKGROUND
         self.main_menu_view = main_menu_view
         self.word_manager = WordManager()
         self.text_input_buffer = []
@@ -19,22 +21,27 @@ class AITrainerView(arcade.View):
             x=self.window.width//2, 
             y=self.window.height//2 + 50, 
             anchor_x="center",
-            font_size=36,
-            color=self.TARGET_TEXT_COLOR
+            font_name="Pixelzone",
+            font_size=64,
+            color=self.TARGET_TEXT_COLOR,
+            bold=True
         )
         self.input_text = arcade.Text(
             "", 
             x=self.target_text.x, 
-            y=self.target_text.y - 80, 
+            y=self.target_text.y - 100, 
             anchor_x="center",
-            font_size=36,
+            font_name="Pixelzone",
+            font_size=64,
             color=self.INPUT_TEXT_COLOR
         )
         self.wpm_text = arcade.Text(
             "",
-            x=10,
-            y=15,
-            font_size=28,
+            x=self.window.width//2,
+            y=20,
+            anchor_x="center",
+            font_name="Pixelzone",
+            font_size=50,
             color=self.WPM_TEXT_COLOR
         )
         self.wpm = 0
@@ -48,6 +55,10 @@ class AITrainerView(arcade.View):
     
     def on_draw(self):
         self.clear()
+        arcade.draw_texture_rect(
+            SEPIA_BACKGROUND,
+            arcade.LBWH(0, 0, self.window.width, self.window.height)
+        )
         self.target_text.draw()
         self.input_text.draw()
         self.wpm_text.draw()

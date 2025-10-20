@@ -22,17 +22,32 @@ class SpaceShooterGameView(arcade.View):
     ENEMY_MOVEMENT_SPEED_RANGE = [0.75, 1.25]
     LASER_SPEED = 40
     SOUND_VOLUME = 1.0
+    FONT_NAME = "Pixelzone"
     
     def __init__(self, main_menu_view):
         super().__init__(background_color=self.BACKGROUND_COLOR)
         self.main_menu_view = main_menu_view
         self.enemy_spawner = EnemySpawner()
         self.player = Player(center_x=75, center_y=self.height//2)
-        self.player_lives_text = arcade.Text("", 10, 15, font_size=20, bold=True)
+        self.player_lives_text = arcade.Text(
+            text="", 
+            x=10, 
+            y=15, 
+            font_name=self.FONT_NAME,
+            font_size=32, 
+            bold=True
+        )
         self.input = ""
         self.explosion_list = None
         self.score = 0
-        self.score_text = arcade.Text("", 10, 40, font_size=20, bold=True)
+        self.score_text = arcade.Text(
+            text="",
+            x=10,
+            y=50,
+            font_name=self.FONT_NAME,
+            font_size=32,
+            bold=True
+        )
         self._load_explosion_texture_list()
         self.laser_sound = arcade.Sound(":resources:/sounds/laser2.wav")
         self.explosion_sound = arcade.Sound(":resources:/sounds/explosion2.wav")
