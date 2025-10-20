@@ -16,6 +16,7 @@ class MainMenuView(arcade.View):
 
     def __init__(self):
         super().__init__(background_color=self.BACKGROUND_COLOR)
+        self.background = arcade.load_texture("sepia_background.png")
         self.text_batch = Batch()
         self.title_text = arcade.Text(
             "Welcome to AI Typing Trainer!",
@@ -23,7 +24,9 @@ class MainMenuView(arcade.View):
             y = self.window.height // 2 + 50,
             anchor_x="center",
             font_size=40,
-            batch=self.text_batch
+            batch=self.text_batch,
+            bold=True,
+            color=(151, 120, 97, 255)
         )
         self.instruction_text = arcade.Text(
             "Press ENTER to start or ESCAPE to quit", 
@@ -31,23 +34,57 @@ class MainMenuView(arcade.View):
             y = self.title_text.y - 50,
             anchor_x="center",
             font_size=20,
-            batch=self.text_batch
+            batch=self.text_batch,
+            color=(151, 120, 97, 255)
         )
         self.ui = UIManager()
         self.anchor = self.ui.add(UIAnchorLayout())
-        self.BUTTON_WIDTH = 200
+        self.BUTTON_WIDTH = 300
+        button_style = {
+            "normal": UIFlatButton.UIStyle(
+                font_size=14,
+                font_color=(240, 226, 210, 255),
+                bg=(151, 120, 97, 255)
+            ),
+            "hover": UIFlatButton.UIStyle(
+                font_size=14,
+                font_color=(240, 226, 210, 255),
+                bg=(151, 120, 97, 255),
+                border=(240, 226, 210, 255),
+                border_width=2
+            ),
+            "press": UIFlatButton.UIStyle(
+                font_size=14,
+                font_color=(240, 226, 210, 255),
+                bg=(151, 120, 97, 255),
+                border=(240, 226, 210, 255),
+                border_width=4
+            )
+        }
         
-        self.space_shooter_button = UIFlatButton(width=self.BUTTON_WIDTH, text="Space Shooter")
+        self.space_shooter_button = UIFlatButton(
+            text="Space Shooter",
+            width=self.BUTTON_WIDTH,
+            style=button_style
+        )
         @self.space_shooter_button.event("on_click")
         def _(event):
             self._start_game()
 
-        self.ai_trainer_button = UIFlatButton(width=self.BUTTON_WIDTH, text="AI Trainer")
+        self.ai_trainer_button = UIFlatButton(
+            text="AI Trainer", 
+            width=self.BUTTON_WIDTH,
+            style=button_style
+        )
         @self.ai_trainer_button.event("on_click")
         def _(event):
             self._start_ai_trainer()
  
-        self.quit_button = UIFlatButton(width=self.BUTTON_WIDTH, text="Quit")
+        self.quit_button = UIFlatButton(
+            text="Quit",
+            width=self.BUTTON_WIDTH,
+            style=button_style
+        )
         @self.quit_button.event("on_click")
         def _(event):
             self._quit_game()
@@ -64,7 +101,7 @@ class MainMenuView(arcade.View):
         )
 
     def on_show_view(self):
-        self.window.default_camera.use()
+        # self.window.default_camera.use()
         self.ui.enable()
 
     def on_hide_view(self):
@@ -72,6 +109,10 @@ class MainMenuView(arcade.View):
 
     def on_draw(self):
         self.clear() # This is IMPORTANT! The text looks jagged without this!
+        arcade.draw_texture_rect(
+            self.background,
+            arcade.LBWH(0, 0, self.window.width, self.window.height)
+        )
         self.text_batch.draw()
         self.ui.draw()
 
@@ -97,7 +138,7 @@ class MainMenuView(arcade.View):
 
 def main():
     arcade.resources.load_kenney_fonts()
-    window = arcade.Window(1280, 720, "AI Typing Trainer")
+    window = arcade.Window(1280, 720, "AI Typing Trainer", vsync=True)
     main_menu_view = MainMenuView()
     window.show_view(main_menu_view)
     arcade.run()
