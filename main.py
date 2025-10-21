@@ -19,7 +19,7 @@ class MainMenuView(arcade.View):
         super().__init__()
         self.text_batch = Batch()
         self.title_text = arcade.Text(
-            "Welcome to AI Typing Trainer!",
+            "Welcome to TypeMania!",
             x = self.window.width // 2,
             y = self.window.height // 2 + 50,
             anchor_x="center",
@@ -59,7 +59,7 @@ class MainMenuView(arcade.View):
         def _(event):
             self._quit_game()
 
-        self.box_layout = UIBoxLayout(space_between=10)
+        self.box_layout = UIBoxLayout(space_between=15)
         self.box_layout.add(self.space_shooter_button)
         self.box_layout.add(self.ai_trainer_button)
         self.box_layout.add(self.quit_button)
@@ -110,7 +110,7 @@ def load_fonts():
 
 def main():
     load_fonts()
-    window = arcade.Window(1280, 720, "AI Typing Trainer")
+    window = arcade.Window(1280, 720, "TypeMania")
     main_menu_view = MainMenuView()
     window.show_view(main_menu_view)
     arcade.run()

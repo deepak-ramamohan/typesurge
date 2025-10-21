@@ -9,9 +9,12 @@ from pyglet.graphics import Batch
 from arcade.gui import (
     UIManager,
     UIAnchorLayout,
-    UIBoxLayout, 
+    UIBoxLayout,
     UIFlatButton
 )
+from utils.textures import SEPIA_BACKGROUND
+from utils.button_styles import sepia_button_style
+from utils.colors import BROWN, BEIGE
 
 
 class SpaceShooterGameView(arcade.View):
@@ -26,6 +29,7 @@ class SpaceShooterGameView(arcade.View):
     
     def __init__(self, main_menu_view):
         super().__init__(background_color=self.BACKGROUND_COLOR)
+        self.window.set_mouse_visible(False)
         self.main_menu_view = main_menu_view
         self.enemy_spawner = EnemySpawner()
         self.player = Player(center_x=75, center_y=self.height//2)
@@ -34,7 +38,8 @@ class SpaceShooterGameView(arcade.View):
             x=10, 
             y=15, 
             font_name=self.FONT_NAME,
-            font_size=32, 
+            font_size=32,
+            color=arcade.color.ANTIQUE_RUBY,
             bold=True
         )
         self.input = ""
@@ -46,6 +51,7 @@ class SpaceShooterGameView(arcade.View):
             y=50,
             font_name=self.FONT_NAME,
             font_size=32,
+            color=arcade.color.ANTIQUE_RUBY,
             bold=True
         )
         self._load_explosion_texture_list()
@@ -69,6 +75,10 @@ class SpaceShooterGameView(arcade.View):
 
     def on_draw(self):
         self.clear()
+        arcade.draw_texture_rect(
+            SEPIA_BACKGROUND,
+            arcade.LBWH(0, 0, self.window.width, self.window.height)
+        )
         self.laser_list.draw()
         arcade.draw_sprite(self.player)
         self.enemy_word_list.draw()
@@ -147,12 +157,14 @@ class SpaceShooterGameView(arcade.View):
         
 
     def _fire_laser_at(self, enemy_word):
-        laser = arcade.Sprite(":resources:/images/space_shooter/laserBlue01.png")
+        laser = arcade.Sprite(":resources:/images/space_shooter/laserRed01.png")
+        laser.color = BEIGE
+        LASER_ANGLE_OFFSET = 90
         laser.center_y = self.player.center_y
         laser.left = self.player.right
         theta = calculate_angle_between_points(laser.position, enemy_word.position)
         laser.velocity = [self.LASER_SPEED * math.cos(theta), self.LASER_SPEED * math.sin(theta)]
-        laser.angle = math.degrees(2 * math.pi - theta)
+        laser.angle = math.degrees(2 * math.pi - theta) + LASER_ANGLE_OFFSET
         self.laser_list.append(laser)
         arcade.play_sound(self.laser_sound, volume=self.SOUND_VOLUME)
         enemy_word.reset_color()
@@ -236,6 +248,12 @@ class SpaceShooterGameView(arcade.View):
         key_pressed = key_mapping.get(symbol, "")
         self.input = self.input + key_pressed
 
+    def on_show_view(self):
+        self.window.set_mouse_visible(False)
+
+    def on_hide_view(self):
+        self.window.set_mouse_visible(True)
+
 
 class PauseView(arcade.View):
 
@@ -246,40 +264,53 @@ class PauseView(arcade.View):
         self.title_text = arcade.Text(
             "Game Paused",
             x = self.window.width // 2,
-            y = self.window.height // 2 + 150,
+            y = self.window.height // 2 + 100,
             anchor_x="center",
-            font_size=40,
+            font_name=self.game_view.FONT_NAME,
+            font_size=64,
+            color=BROWN,
+            bold=True,
             batch=self.text_batch
         )
         self.score_text = arcade.Text(
             f"Your Score: {self.game_view.score}", 
             x = self.title_text.x,
-            y = self.title_text.y - 50,
+            y = self.title_text.y - 70,
             anchor_x="center",
-            font_size=28,
+            font_name=self.game_view.FONT_NAME,
+            font_size=48,
+            color=BROWN,
             batch=self.text_batch
         )
         self.ui = UIManager()
         self.anchor = self.ui.add(UIAnchorLayout())
-        self.BUTTON_WIDTH = 200
+        self.BUTTON_WIDTH = 300
 
-        self.resume_button = UIFlatButton(width=self.BUTTON_WIDTH, text="Resume")
+        self.resume_button = UIFlatButton(
+            text="Resume",
+            width=self.BUTTON_WIDTH,
+            style=sepia_button_style
+        )
         @self.resume_button.event("on_click")
         def _(event):
             self._resume()
 
-        self.quit_to_main_menu_button = UIFlatButton(width=self.BUTTON_WIDTH, text="Quit to Main Menu", multiline=True)
+        self.quit_to_main_menu_button = UIFlatButton(
+            text="Quit to Main Menu",
+            width=self.BUTTON_WIDTH,
+            style=sepia_button_style
+        )
         @self.quit_to_main_menu_button.event("on_click")
         def _(event):
             self._return_to_main_menu()
 
-        self.box_layout = UIBoxLayout(space_between=10)
+        self.box_layout = UIBoxLayout(space_between=15)
         self.box_layout.add(self.resume_button)
         self.box_layout.add(self.quit_to_main_menu_button)
         self.anchor.add(
             self.box_layout,
             anchor_y="top",
-            align_y=-(self.height - self.title_text.y + 120)
+            align_y=-(self.height - self.score_text.y + 30)
         )
 
     def on_show_view(self):
@@ -291,6 +322,10 @@ class PauseView(arcade.View):
 
     def on_draw(self):
         self.clear() # This is IMPORTANT! The text looks jagged without this!
+        arcade.draw_texture_rect(
+            SEPIA_BACKGROUND,
+            arcade.LBWH(0, 0, self.window.width, self.window.height)
+        )
         self.text_batch.draw()
         self.ui.draw()
 
@@ -303,6 +338,8 @@ class PauseView(arcade.View):
 
 class GameOverView(arcade.View):
 
+    FONT_NAME = "Pixelzone"
+
     def __init__(self, score, main_menu_view):
         super().__init__()
         self.score = score
@@ -313,37 +350,46 @@ class GameOverView(arcade.View):
             x = self.window.width // 2,
             y = self.window.height // 2 + 50,
             anchor_x="center",
-            font_size=40,
+            font_name=self.FONT_NAME,
+            font_size=64,
+            bold=True,
+            color=BROWN,
             batch=self.text_batch
         )
         self.score_text = arcade.Text(
             f"Your Score: {self.score}", 
             x = self.title_text.x,
-            y = self.title_text.y - 50,
+            y = self.title_text.y - 70,
             anchor_x="center",
-            font_size=28,
+            font_name=self.FONT_NAME,
+            font_size=48,
+            color=BROWN,
             batch=self.text_batch
         )
 
         self.ui = UIManager()
         self.anchor = self.ui.add(UIAnchorLayout())
-        self.BUTTON_WIDTH = 200
+        self.BUTTON_WIDTH = 300
 
-        self.continue_button = UIFlatButton(width=self.BUTTON_WIDTH, text="Continue")
+        self.continue_button = UIFlatButton(
+            text="Continue",
+            width=self.BUTTON_WIDTH,
+            style=sepia_button_style
+        )
         @self.continue_button.event("on_click")
         def _(event):
             self._continue_to_main_menu()
 
-        self.box_layout = UIBoxLayout(space_between=10)
+        self.box_layout = UIBoxLayout(space_between=15)
         self.box_layout.add(self.continue_button)
         self.anchor.add(
             self.box_layout,
             anchor_y="top",
-            align_y=-(self.height - self.title_text.y + 110)
+            align_y=-(self.height - self.score_text.y + 30)
         )
 
     def on_show_view(self):
-        self.window.default_camera.use()
+        # self.window.default_camera.use()
         self.ui.enable()
 
     def on_hide_view(self):
@@ -351,6 +397,10 @@ class GameOverView(arcade.View):
 
     def on_draw(self):
         self.clear() # This is IMPORTANT! The text looks jagged without this!
+        arcade.draw_texture_rect(
+            SEPIA_BACKGROUND,
+            arcade.LBWH(0, 0, self.window.width, self.window.height)
+        )
         self.text_batch.draw()
         self.ui.draw()
 

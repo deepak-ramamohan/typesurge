@@ -6,6 +6,7 @@ from utils.helpers import calculate_angle_between_points
 from pyglet.graphics import Batch
 from space_shooter.word_manager import WordManager
 import numpy as np
+from utils.colors import BROWN, BEIGE
 
 
 class EnemyWord(arcade.Sprite):
@@ -18,10 +19,10 @@ class EnemyWord(arcade.Sprite):
 
     """
 
-    MATCHED_COLOR = arcade.color.RED_ORANGE
-    UNMATCHED_COLOR = arcade.color.WHITE
+    MATCHED_COLOR = arcade.color.ANTIQUE_BRASS
+    UNMATCHED_COLOR = BROWN
     FONT_NAME = "Pixelzone"
-    FONT_SIZE = 40
+    FONT_SIZE = 42
     METEOR_SPRITE_OPTIONS = [
         ":resources:/images/space_shooter/meteorGrey_med1.png",
         ":resources:/images/space_shooter/meteorGrey_med2.png"
@@ -37,6 +38,7 @@ class EnemyWord(arcade.Sprite):
         self.meteor_sprite = random.choice(self.METEOR_SPRITE_OPTIONS)
         x, y = position
         super().__init__(self.meteor_sprite, center_x=x, center_y=y)
+        self.color = BEIGE
         self.movement_speed = random.uniform(
             movement_speed_range[0],
             movement_speed_range[1]
