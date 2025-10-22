@@ -18,6 +18,8 @@ class AITrainerView(arcade.View):
     INPUT_TEXT_COLOR = arcade.color.ANTIQUE_BRASS
     WPM_TEXT_COLOR = arcade.color.ANTIQUE_RUBY
     FONT_NAME = "Pixelzone"
+    WORD_CHARACTER_COUNT_MIN = 4
+    WORD_CHARACTER_COUNT_MAX = 8
 
     def __init__(self, main_menu_view):
         super().__init__()
@@ -25,24 +27,37 @@ class AITrainerView(arcade.View):
         self.main_menu_view = main_menu_view
         self.word_manager = WordManager()
         self.text_input_buffer = []
+        self.text_batch = Batch()
         self.target_text = arcade.Text(
             "", 
             x=self.window.width//2, 
-            y=self.window.height//2 + 50, 
+            y=self.window.height//2 + 100, 
             anchor_x="center",
             font_name=self.FONT_NAME,
             font_size=64,
             color=self.TARGET_TEXT_COLOR,
-            bold=True
+            bold=True,
+            batch=self.text_batch
+        )
+        self.next_word_text = arcade.Text(
+            "", 
+            x=self.target_text.x, 
+            y=self.target_text.y - 60, 
+            anchor_x="center",
+            font_name=self.FONT_NAME,
+            font_size=36,
+            color=self.TARGET_TEXT_COLOR,
+            batch=self.text_batch
         )
         self.input_text = arcade.Text(
             "", 
             x=self.target_text.x, 
-            y=self.target_text.y - 100, 
+            y=self.target_text.y - 150, 
             anchor_x="center",
             font_name=self.FONT_NAME,
             font_size=64,
-            color=self.INPUT_TEXT_COLOR
+            color=self.INPUT_TEXT_COLOR,
+            batch=self.text_batch
         )
         self.wpm_text = arcade.Text(
             "",
@@ -51,16 +66,23 @@ class AITrainerView(arcade.View):
             anchor_x="center",
             font_name="Pixelzone",
             font_size=50,
-            color=self.WPM_TEXT_COLOR
+            color=self.WPM_TEXT_COLOR,
+            batch=self.text_batch
         )
         self.wpm = 0
         self.time_elapsed = 0
         self.words_typed = 0
         self.character_count = 0
-        self.pause_view = PauseView(self)
 
     def setup(self):
-        self.target_text.text = self.word_manager.generate_word(min_character_count=4, max_character_count=8)
+        self.target_text.text = self.word_manager.generate_word(
+            min_character_count=self.WORD_CHARACTER_COUNT_MIN, 
+            max_character_count=self.WORD_CHARACTER_COUNT_MAX
+        )
+        self.next_word_text.text = self.word_manager.generate_word(
+            min_character_count=self.WORD_CHARACTER_COUNT_MIN, 
+            max_character_count=self.WORD_CHARACTER_COUNT_MAX
+        )
         self.input_text.text = ""
         self._reset_wpm()
     
@@ -70,18 +92,17 @@ class AITrainerView(arcade.View):
             SEPIA_BACKGROUND,
             arcade.LBWH(0, 0, self.window.width, self.window.height)
         )
-        self.target_text.draw()
-        self.input_text.draw()
-        self.wpm_text.draw()
+        self.text_batch.draw()
 
     def on_update(self, delta_time):
         self.input_text.text = ''.join(self.text_input_buffer)
         if self._is_input_matching():
             self.character_count += len(self.text_input_buffer)
             self.text_input_buffer = []
-            self.target_text.text = self.word_manager.generate_word(
-                min_character_count=4, 
-                max_character_count=8
+            self.target_text.text = self.next_word_text.text
+            self.next_word_text.text = self.word_manager.generate_word(
+                min_character_count=self.WORD_CHARACTER_COUNT_MIN,
+                max_character_count=self.WORD_CHARACTER_COUNT_MAX
             )
             self.words_typed += 1
         self._update_wpm(delta_time)
