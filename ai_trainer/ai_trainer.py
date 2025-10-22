@@ -129,7 +129,7 @@ class AITrainerView(arcade.View):
             self._play_typing_sound()
 
     def _play_typing_sound(self):
-        arcade.play_sound(self.typing_sound)
+        arcade.play_sound(self.typing_sound, volume=0.75)
 
     def on_text(self, text):
         """
@@ -230,6 +230,10 @@ class PauseView(arcade.View):
         )
         self.text_batch.draw()
         self.ui.draw()
+
+    def on_key_press(self, symbol, modifiers):
+        if symbol == arcade.key.ESCAPE:
+            self._resume()
 
     def _resume(self):
         self.window.show_view(self.game_view)
