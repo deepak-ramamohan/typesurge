@@ -1,4 +1,5 @@
 import arcade
+import random
 from space_shooter.word_manager import WordManager
 from utils.textures import SEPIA_BACKGROUND
 from utils.colors import BROWN
@@ -73,6 +74,7 @@ class AITrainerView(arcade.View):
         self.time_elapsed = 0
         self.words_typed = 0
         self.character_count = 0
+        self.typing_sound = arcade.Sound("assets/sounds/eklee-KeyPressMac06.wav")
 
     def setup(self):
         self.target_text.text = self.word_manager.generate_word(
@@ -123,6 +125,11 @@ class AITrainerView(arcade.View):
         if symbol == arcade.key.ESCAPE:
             pause_view = PauseView(self)
             self.window.show_view(pause_view)
+        else:
+            self._play_typing_sound()
+
+    def _play_typing_sound(self):
+        arcade.play_sound(self.typing_sound)
 
     def on_text(self, text):
         """
@@ -132,7 +139,7 @@ class AITrainerView(arcade.View):
         """
         if text not in {'\r', '\n', '\r\n'}:
             self.text_input_buffer.append(text)
-
+            
     def on_text_motion(self, motion):
         """
         Identifying when the backspace key is pressed (or held pressed)
