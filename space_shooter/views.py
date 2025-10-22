@@ -61,6 +61,8 @@ class SpaceShooterGameView(arcade.View):
         # For fixing the initial sound distortion, play something at zero volume
         # Subsequent sounds will then play clearly
         arcade.play_sound(self.laser_sound, volume=0)
+        self.game_music = arcade.Sound("assets/sounds/space_jazz.mp3", streaming=True)
+        self.current_music = None
 
     def setup(self):
         self.input = ""
@@ -72,6 +74,7 @@ class SpaceShooterGameView(arcade.View):
         self.explosion_list = arcade.SpriteList()
         self.enemy_word_list = EnemyWordList()
         self._spawn_enemies()
+        self.current_music = arcade.play_sound(self.game_music, loop=True)
 
     def on_draw(self):
         self.clear()
@@ -250,9 +253,13 @@ class SpaceShooterGameView(arcade.View):
 
     def on_show_view(self):
         self.window.set_mouse_visible(False)
+        if self.current_music:
+            self.current_music.play()
 
     def on_hide_view(self):
         self.window.set_mouse_visible(True)
+        if self.current_music:
+            self.current_music.pause()
 
 
 class PauseView(arcade.View):
@@ -328,6 +335,10 @@ class PauseView(arcade.View):
         )
         self.text_batch.draw()
         self.ui.draw()
+
+    def on_key_press(self, symbol, modifiers):
+        if symbol == arcade.key.ESCAPE:
+            self._resume()
 
     def _resume(self):
         self.window.show_view(self.game_view)
