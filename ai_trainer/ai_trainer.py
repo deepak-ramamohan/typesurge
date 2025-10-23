@@ -72,6 +72,8 @@ class AITrainerView(arcade.View):
             batch=self.text_batch
         )
         self.typing_sound = arcade.Sound("assets/sounds/eklee-KeyPressMac06.wav")
+        self.game_music = arcade.Sound("assets/sounds/vibing_over_venus.mp3", streaming=True)
+        self.current_music = None
 
     def setup(self):
         self.target_text.text = self.word_manager.generate_word(
@@ -85,6 +87,7 @@ class AITrainerView(arcade.View):
         self.input_text.text = ""
         self.input_text_manager.set_target_text(self.target_text.text)
         self.typing_metrics_tracker.reset_metrics()
+        self.current_music = arcade.play_sound(self.game_music, loop=True)
     
     def on_draw(self):
         self.clear()
@@ -150,9 +153,13 @@ class AITrainerView(arcade.View):
     
     def on_show_view(self):
         self.window.set_mouse_visible(False)
+        if self.current_music:
+            self.current_music.play()
 
     def on_hide_view(self):
         self.window.set_mouse_visible(True)
+        # if self.current_music:
+        #     self.current_music.pause()
 
 
 class InputTextManager():
@@ -319,4 +326,6 @@ class PauseView(arcade.View):
         self.window.show_view(self.game_view)
 
     def _return_to_main_menu(self):
+        if self.game_view.current_music:
+            self.game_view.current_music.pause()
         self.window.show_view(self.game_view.main_menu_view)
