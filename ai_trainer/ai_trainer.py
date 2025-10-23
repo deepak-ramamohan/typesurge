@@ -1,5 +1,4 @@
 import arcade
-import random
 from space_shooter.word_manager import WordManager
 from utils.textures import SEPIA_BACKGROUND
 from utils.colors import BROWN
@@ -72,8 +71,10 @@ class AITrainerView(arcade.View):
         )
         self.wpm = 0
         self.time_elapsed = 0
-        self.words_typed = 0
-        self.character_count = 0
+        self.words_typed_correctly = 0
+        self.characters_typed_correctly = 0
+        self.characters_typed_total = 0
+        self.accuracy = 0.0
         self.typing_sound = arcade.Sound("assets/sounds/eklee-KeyPressMac06.wav")
 
     def setup(self):
@@ -99,26 +100,30 @@ class AITrainerView(arcade.View):
     def on_update(self, delta_time):
         self.input_text.text = ''.join(self.text_input_buffer)
         if self._is_input_matching():
-            self.character_count += len(self.text_input_buffer)
+            self.characters_typed_correctly += len(self.text_input_buffer)
             self.text_input_buffer = []
             self.target_text.text = self.next_word_text.text
             self.next_word_text.text = self.word_manager.generate_word(
                 min_character_count=self.WORD_CHARACTER_COUNT_MIN,
                 max_character_count=self.WORD_CHARACTER_COUNT_MAX
             )
-            self.words_typed += 1
+            self.words_typed_correctly += 1
         self._update_wpm(delta_time)
 
     def _reset_wpm(self):
         self.wpm = 0
-        self.character_count = 0
+        self.accuracy = 0.0
+        self.characters_typed_correctly = 0
+        self.characters_typed_total = 0
         self.time_elapsed = 0
         self._update_wpm(0)
 
     def _update_wpm(self, delta_time):
         self.time_elapsed += delta_time
         if self.time_elapsed >= 2:
-            self.wpm = int(self.character_count * 12 / self.time_elapsed)
+            self.wpm = int(self.characters_typed_correctly * 12 / self.time_elapsed)
+        if self.characters_typed_total > 0:
+            self.accuracy = 100.0 * self.characters_typed_correctly / self.characters_typed_total
         self.wpm_text.text = f"WPM: {self.wpm}"
         
     def on_key_press(self, symbol, modifiers):
@@ -139,6 +144,7 @@ class AITrainerView(arcade.View):
         """
         if text not in {'\r', '\n', '\r\n'}:
             self.text_input_buffer.append(text)
+            self.characters_typed_total += 1
             
     def on_text_motion(self, motion):
         """
@@ -174,8 +180,11 @@ class PauseView(arcade.View):
             bold=True,
             batch=self.text_batch
         )
+        score_text = f"WPM: {self.game_view.wpm}," + \
+            f" Words typed: {self.game_view.words_typed_correctly}, " + \
+            f" Accuracy: {self.game_view.accuracy:.2f}%"
         self.score_text = arcade.Text(
-            f"WPM: {self.game_view.wpm}, Words typed: {self.game_view.words_typed}", 
+            score_text,
             x = self.title_text.x,
             y = self.title_text.y - 70,
             anchor_x="center",
