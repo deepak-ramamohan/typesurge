@@ -70,12 +70,22 @@ class MainMenuView(arcade.View):
             align_y=-(self.height - self.title_text.y + 60)
         )
 
+        self.main_menu_music = arcade.Sound("assets/sounds/hard_boiled.mp3", streaming=True)
+        self.current_music = None
+
+    def setup(self):
+        self.current_music = arcade.play_sound(self.main_menu_music, loop=True)
+
     def on_show_view(self):
         # self.window.default_camera.use()
         self.ui.enable()
+        if self.current_music:
+            self.current_music.play()
 
     def on_hide_view(self):
         self.ui.disable()
+        if self.current_music:
+            self.current_music.pause()
 
     def on_draw(self):
         self.clear() # This is IMPORTANT! The text looks jagged without this!
@@ -112,6 +122,7 @@ def main():
     load_fonts()
     window = arcade.Window(1280, 720, "TypeMania")
     main_menu_view = MainMenuView()
+    main_menu_view.setup()
     window.show_view(main_menu_view)
     arcade.run()
 
