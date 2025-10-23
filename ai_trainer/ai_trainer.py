@@ -10,6 +10,7 @@ from arcade.gui import (
     UIBoxLayout
 )
 from utils.button_styles import sepia_button_style
+from collections import defaultdict
 
 
 class AITrainerView(arcade.View):
@@ -26,7 +27,8 @@ class AITrainerView(arcade.View):
         self.background = SEPIA_BACKGROUND
         self.main_menu_view = main_menu_view
         self.word_manager = WordManager()
-        self.text_input_buffer = []
+        self.input_text_manager = InputTextManager()
+        self.typing_metrics_tracker = TypingMetricsTracker()
         self.text_batch = Batch()
         self.target_text = arcade.Text(
             "", 
@@ -69,12 +71,6 @@ class AITrainerView(arcade.View):
             color=self.WPM_TEXT_COLOR,
             batch=self.text_batch
         )
-        self.wpm = 0
-        self.time_elapsed = 0
-        self.words_typed_correctly = 0
-        self.characters_typed_correctly = 0
-        self.characters_typed_total = 0
-        self.accuracy = 0.0
         self.typing_sound = arcade.Sound("assets/sounds/eklee-KeyPressMac06.wav")
 
     def setup(self):
@@ -87,7 +83,8 @@ class AITrainerView(arcade.View):
             max_character_count=self.WORD_CHARACTER_COUNT_MAX
         )
         self.input_text.text = ""
-        self._reset_wpm()
+        self.input_text_manager.set_target_text(self.target_text.text)
+        self.typing_metrics_tracker.reset_metrics()
     
     def on_draw(self):
         self.clear()
@@ -98,33 +95,21 @@ class AITrainerView(arcade.View):
         self.text_batch.draw()
 
     def on_update(self, delta_time):
-        self.input_text.text = ''.join(self.text_input_buffer)
-        if self._is_input_matching():
-            self.characters_typed_correctly += len(self.text_input_buffer)
-            self.text_input_buffer = []
+        self.input_text.text = self.input_text_manager.input_text
+        self.typing_metrics_tracker.update_time(delta_time)
+        if self.input_text_manager.is_input_matching_target():
             self.target_text.text = self.next_word_text.text
             self.next_word_text.text = self.word_manager.generate_word(
                 min_character_count=self.WORD_CHARACTER_COUNT_MIN,
                 max_character_count=self.WORD_CHARACTER_COUNT_MAX
             )
-            self.words_typed_correctly += 1
-        self._update_wpm(delta_time)
-
-    def _reset_wpm(self):
-        self.wpm = 0
-        self.accuracy = 0.0
-        self.characters_typed_correctly = 0
-        self.characters_typed_total = 0
-        self.time_elapsed = 0
-        self._update_wpm(0)
-
-    def _update_wpm(self, delta_time):
-        self.time_elapsed += delta_time
-        if self.time_elapsed >= 2:
-            self.wpm = int(self.characters_typed_correctly * 12 / self.time_elapsed)
-        if self.characters_typed_total > 0:
-            self.accuracy = 100.0 * self.characters_typed_correctly / self.characters_typed_total
-        self.wpm_text.text = f"WPM: {self.wpm}"
+            self.typing_metrics_tracker.update_metrics(self.input_text_manager)
+            self.input_text_manager.set_target_text(self.target_text.text)
+        self._update_wpm_text()
+        
+    def _update_wpm_text(self):
+        self.wpm_text.text = f"WPM: {self.typing_metrics_tracker.wpm}, " + \
+            f"Accuracy: {self.typing_metrics_tracker.accuracy:.2f}%"
         
     def on_key_press(self, symbol, modifiers):
         if symbol == arcade.key.ESCAPE:
@@ -143,24 +128,110 @@ class AITrainerView(arcade.View):
         because arcade probably inherits pyglet.window
         """
         if text not in {'\r', '\n', '\r\n'}:
-            self.text_input_buffer.append(text)
-            self.characters_typed_total += 1
+            self.input_text_manager.capture_character_input(text)
+            self.input_text.text = self.input_text_manager.input_text
+            # print(
+            #     self.input_text_manager._caret,
+            #     self.input_text_manager.text_input_buffer,
+            #     self.input_text_manager.char_confusion_matrix
+            # )
             
     def on_text_motion(self, motion):
         """
         Identifying when the backspace key is pressed (or held pressed)
         """
-        if motion == arcade.key.MOTION_BACKSPACE and self.text_input_buffer:
-            self.text_input_buffer.pop()
-
-    def _is_input_matching(self):
-        return self.input_text.text == self.target_text.text
+        if motion == arcade.key.MOTION_BACKSPACE:
+            self.input_text_manager.capture_backspace()
+            # print(
+            #     self.input_text_manager._caret,
+            #     self.input_text_manager.text_input_buffer,
+            #     self.input_text_manager.char_confusion_matrix
+            # )
     
     def on_show_view(self):
         self.window.set_mouse_visible(False)
 
     def on_hide_view(self):
         self.window.set_mouse_visible(True)
+
+
+class InputTextManager():
+
+    def __init__(self):
+        self.target_text = ""
+        self.reset_input()
+
+    def capture_character_input(self, input):
+        self.text_input_buffer.append(input)
+        if self._caret < len(self.target_text):
+            correct_char = self.target_text[self._caret]
+            self.char_confusion_matrix[correct_char][input] += 1
+        self._caret += 1
+
+    def capture_backspace(self):
+        if self._caret > 0:
+            self._caret -= 1
+        if self.text_input_buffer:
+            self.text_input_buffer.pop()
+
+    def reset_input(self):
+        self.text_input_buffer = []
+        self._caret = 0
+        self.char_confusion_matrix = defaultdict(lambda: defaultdict(int))
+
+    def set_target_text(self, target_text):
+        self.target_text = target_text
+        self.reset_input()
+
+    def is_input_matching_target(self):
+        if self._caret < len(self.target_text):
+            return False
+        return ''.join(self.text_input_buffer) == self.target_text
+    
+    @property
+    def input_text(self):
+        return ''.join(self.text_input_buffer)
+    
+
+class TypingMetricsTracker():
+    """
+    Class for tracking metrics such as WPM, CPM and Accuracy
+    """
+
+    def __init__(self):
+        self.wpm = 0
+        self.time_elapsed = 0
+        self.words_typed_correctly = 0
+        self.characters_typed_correctly = 0
+        self.characters_typed_total = 0
+        self.accuracy = 0.0
+
+    def update_metrics(self, input_text_manager):
+        self.words_typed_correctly += 1
+        count_correct = len(input_text_manager.target_text)
+        count_total = 0
+        for _, counts in input_text_manager.char_confusion_matrix.items():
+            count_total += sum(counts.values())
+        self.characters_typed_correctly += count_correct
+        self.characters_typed_total += count_total
+        self._update_wpm()
+
+    def update_time(self, delta_time):
+        self.time_elapsed += delta_time
+
+    def reset_metrics(self):
+        self.wpm = 0
+        self.accuracy = 0.0
+        self.characters_typed_correctly = 0
+        self.characters_typed_total = 0
+        self.time_elapsed = 0
+        self._update_wpm()
+
+    def _update_wpm(self):
+        if self.time_elapsed >= 2:
+            self.wpm = int(self.characters_typed_correctly * 12 / self.time_elapsed)
+        if self.characters_typed_total > 0:
+            self.accuracy = 100.0 * self.characters_typed_correctly / self.characters_typed_total
 
 
 class PauseView(arcade.View):
@@ -180,9 +251,9 @@ class PauseView(arcade.View):
             bold=True,
             batch=self.text_batch
         )
-        score_text = f"WPM: {self.game_view.wpm}," + \
-            f" Words typed: {self.game_view.words_typed_correctly}, " + \
-            f" Accuracy: {self.game_view.accuracy:.2f}%"
+        score_text = f"WPM: {self.game_view.typing_metrics_tracker.wpm}," + \
+            f" Words typed: {self.game_view.typing_metrics_tracker.words_typed_correctly}, " + \
+            f" Accuracy: {self.game_view.typing_metrics_tracker.accuracy:.2f}%"
         self.score_text = arcade.Text(
             score_text,
             x = self.title_text.x,
