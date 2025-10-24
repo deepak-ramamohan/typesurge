@@ -12,9 +12,9 @@ from arcade.gui import (
     UIBoxLayout,
     UIFlatButton
 )
-from utils.textures import SEPIA_BACKGROUND
+from utils.resources import SEPIA_BACKGROUND, BULLET_SPRITE
 from utils.button_styles import sepia_button_style
-from utils.colors import BROWN, BEIGE
+from utils.colors import BROWN
 
 
 class SpaceShooterGameView(arcade.View):
@@ -160,8 +160,9 @@ class SpaceShooterGameView(arcade.View):
         
 
     def _fire_laser_at(self, enemy_word):
-        laser = arcade.Sprite(":resources:/images/space_shooter/laserRed01.png")
-        laser.color = BEIGE
+        # laser = arcade.Sprite(":resources:/images/space_shooter/laserRed01.png")
+        laser = arcade.Sprite(BULLET_SPRITE, scale=0.2)
+        laser.color = BROWN
         LASER_ANGLE_OFFSET = 90
         laser.center_y = self.player.center_y
         laser.left = self.player.right

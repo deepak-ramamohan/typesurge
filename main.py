@@ -10,7 +10,7 @@ from space_shooter.views import SpaceShooterGameView
 from ai_trainer.ai_trainer import AITrainerView
 from utils.colors import BROWN
 from utils.button_styles import sepia_button_style
-from utils.textures import SEPIA_BACKGROUND
+from utils.resources import SEPIA_BACKGROUND
 
 
 class MainMenuView(arcade.View):

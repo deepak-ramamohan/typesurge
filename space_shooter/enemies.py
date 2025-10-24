@@ -7,6 +7,7 @@ from pyglet.graphics import Batch
 from space_shooter.word_manager import WordManager
 import numpy as np
 from utils.colors import BROWN, BEIGE
+from utils.resources import METEOR_SPRITE_1, METEOR_SPRITE_2
 
 
 class EnemyWord(arcade.Sprite):
@@ -23,10 +24,16 @@ class EnemyWord(arcade.Sprite):
     UNMATCHED_COLOR = BROWN
     FONT_NAME = "Pixelzone"
     FONT_SIZE = 42
+    # METEOR_SPRITE_OPTIONS = [
+    #     ":resources:/images/space_shooter/meteorGrey_med1.png",
+    #     ":resources:/images/space_shooter/meteorGrey_med2.png"
+    # ]
     METEOR_SPRITE_OPTIONS = [
-        ":resources:/images/space_shooter/meteorGrey_med1.png",
-        ":resources:/images/space_shooter/meteorGrey_med2.png"
+        METEOR_SPRITE_1,
+        METEOR_SPRITE_2
     ]
+    METEOR_SPRITE_SCALE = 0.35
+    METEOR_SPRITE_COLOR = BROWN
 
     def __init__(
         self, 
@@ -35,10 +42,15 @@ class EnemyWord(arcade.Sprite):
         target_position,
         movement_speed_range, 
     ):
-        self.meteor_sprite = random.choice(self.METEOR_SPRITE_OPTIONS)
+        self.meteor_sprite_texture = random.choice(self.METEOR_SPRITE_OPTIONS)
         x, y = position
-        super().__init__(self.meteor_sprite, center_x=x, center_y=y)
-        self.color = BEIGE
+        super().__init__(
+            self.meteor_sprite_texture, 
+            center_x=x, 
+            center_y=y,
+            scale=self.METEOR_SPRITE_SCALE
+        )
+        self.color = self.METEOR_SPRITE_COLOR
         self.movement_speed = random.uniform(
             movement_speed_range[0],
             movement_speed_range[1]

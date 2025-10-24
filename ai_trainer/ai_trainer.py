@@ -1,6 +1,6 @@
 import arcade
 from space_shooter.word_manager import WordManager
-from utils.textures import SEPIA_BACKGROUND
+from utils.resources import SEPIA_BACKGROUND
 from utils.colors import BROWN
 from pyglet.graphics import Batch
 from arcade.gui import (
