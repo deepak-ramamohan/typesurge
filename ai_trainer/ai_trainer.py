@@ -10,9 +10,8 @@ from arcade.gui import (
     UIBoxLayout
 )
 from utils.button_styles import sepia_button_style
-from collections import defaultdict
-from dataclasses import dataclass, field, asdict
-import json
+from ai_trainer.input_text_manager import InputTextManager
+from ai_trainer.session_stats import SessionStats, save_session_stats
 
 
 class AITrainerView(arcade.View):
@@ -157,11 +156,6 @@ class AITrainerView(arcade.View):
         if text not in {'\r', '\n', '\r\n'}:
             self.input_text_manager.capture_character_input(text)
             self.input_text.text = self.input_text_manager.input_text
-            # print(
-            #     self.input_text_manager._caret,
-            #     self.input_text_manager.text_input_buffer,
-            #     self.input_text_manager.char_confusion_matrix
-            # )
             
     def on_text_motion(self, motion):
         """
@@ -169,11 +163,6 @@ class AITrainerView(arcade.View):
         """
         if motion == arcade.key.MOTION_BACKSPACE:
             self.input_text_manager.capture_backspace()
-            # print(
-            #     self.input_text_manager._caret,
-            #     self.input_text_manager.text_input_buffer,
-            #     self.input_text_manager.char_confusion_matrix
-            # )
     
     def on_show_view(self):
         self.window.set_mouse_visible(False)
@@ -182,59 +171,6 @@ class AITrainerView(arcade.View):
 
     def on_hide_view(self):
         self.window.set_mouse_visible(True)
-        # if self.current_music:
-        #     self.current_music.pause()
-
-
-class InputTextManager():
-
-    def __init__(self):
-        self.target_text = ""
-        self.reset_input()
-
-    def capture_character_input(self, input):
-        self.text_input_buffer.append(input)
-        if self._caret < len(self.target_text):
-            correct_char = self.target_text[self._caret]
-            self.char_confusion_matrix[correct_char][input] += 1
-        self._caret += 1
-
-    def capture_backspace(self):
-        if self._caret > 0:
-            self._caret -= 1
-        if self.text_input_buffer:
-            self.text_input_buffer.pop()
-
-    def reset_input(self):
-        self.text_input_buffer = []
-        self._caret = 0
-        self.char_confusion_matrix = defaultdict(lambda: defaultdict(int))
-
-    def set_target_text(self, target_text):
-        self.target_text = target_text
-        self.reset_input()
-
-    def is_input_matching_target(self):
-        if self._caret < len(self.target_text):
-            return False
-        return ''.join(self.text_input_buffer) == self.target_text
-    
-    @property
-    def input_text(self):
-        return ''.join(self.text_input_buffer)
-
-
-@dataclass
-class SessionStats:
-    char_confusion_matrix: defaultdict[str, defaultdict[str, int]] = field(
-        default_factory=lambda: defaultdict(lambda: defaultdict(int))
-    )
-    wpm: int = 0
-    words_typed: int = 0
-    chars_typed_correctly: int = 0
-    chars_typed_total: int = 0
-    accuracy: float = 0.0
-    duration_seconds: float = 0.0
 
 
 class PauseView(arcade.View):
@@ -325,6 +261,5 @@ class PauseView(arcade.View):
     def _return_to_main_menu(self):
         if self.game_view.current_music:
             self.game_view.current_music.pause()
-        with open("save.json", "w") as file:
-            json.dump(asdict(self.session_stats), file, indent=4)
+        save_session_stats(self.session_stats, "")
         self.window.show_view(self.game_view.main_menu_view)
