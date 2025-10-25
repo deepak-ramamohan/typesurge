@@ -103,7 +103,6 @@ class MainMenuView(arcade.View):
 
     def _start_ai_trainer(self):
         trainer_view = AITrainerView(self)
-        trainer_view.setup()
         self.window.show_view(trainer_view)
 
     def _quit_game(self):
