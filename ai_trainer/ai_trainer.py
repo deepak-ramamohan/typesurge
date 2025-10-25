@@ -11,6 +11,8 @@ from arcade.gui import (
 )
 from utils.button_styles import sepia_button_style
 from collections import defaultdict
+from dataclasses import dataclass, field, asdict
+import json
 
 
 class AITrainerView(arcade.View):
@@ -28,7 +30,7 @@ class AITrainerView(arcade.View):
         self.main_menu_view = main_menu_view
         self.word_manager = WordManager()
         self.input_text_manager = InputTextManager()
-        self.typing_metrics_tracker = TypingMetricsTracker()
+        self.session_stats = SessionStats()
         self.text_batch = Batch()
         self.target_text = arcade.Text(
             "", 
@@ -74,6 +76,7 @@ class AITrainerView(arcade.View):
         self.typing_sound = arcade.Sound("assets/sounds/eklee-KeyPressMac06.wav")
         self.game_music = arcade.Sound("assets/sounds/vibing_over_venus.mp3", streaming=True)
         self.current_music = None
+        self.setup()
 
     def setup(self):
         self.target_text.text = self.word_manager.generate_word(
@@ -86,8 +89,8 @@ class AITrainerView(arcade.View):
         )
         self.input_text.text = ""
         self.input_text_manager.set_target_text(self.target_text.text)
-        self.typing_metrics_tracker.reset_metrics()
-        self.current_music = arcade.play_sound(self.game_music, loop=True)
+        if self.current_music is None:
+            self.current_music = arcade.play_sound(self.game_music, loop=True)
     
     def on_draw(self):
         self.clear()
@@ -98,25 +101,46 @@ class AITrainerView(arcade.View):
         self.text_batch.draw()
 
     def on_update(self, delta_time):
+        self.session_stats.duration_seconds += delta_time
         self.input_text.text = self.input_text_manager.input_text
-        self.typing_metrics_tracker.update_time(delta_time)
         if self.input_text_manager.is_input_matching_target():
             self.target_text.text = self.next_word_text.text
             self.next_word_text.text = self.word_manager.generate_word(
                 min_character_count=self.WORD_CHARACTER_COUNT_MIN,
                 max_character_count=self.WORD_CHARACTER_COUNT_MAX
             )
-            self.typing_metrics_tracker.update_metrics(self.input_text_manager)
+            self._update_metrics()
             self.input_text_manager.set_target_text(self.target_text.text)
         self._update_wpm_text()
+
+    def _update_metrics(self):
+        self.session_stats.words_typed += 1
+        count_correct = len(self.input_text_manager.target_text)
+        count_total = 0
+        for char_expected, counts in self.input_text_manager.char_confusion_matrix.items():
+            for char_actual, count in counts.items():
+                self.session_stats.char_confusion_matrix[char_expected][char_actual] += count
+                count_total += count
+        self.session_stats.chars_typed_correctly += count_correct
+        self.session_stats.chars_typed_total += count_total
+        self._update_wpm()
+    
+    def _update_wpm(self):
+        if self.session_stats.duration_seconds >= 2:
+            self.session_stats.wpm = int(
+                self.session_stats.chars_typed_correctly * 12 / self.session_stats.duration_seconds
+            )
+        if self.session_stats.chars_typed_total > 0:
+            self.session_stats.accuracy = 100.0 * \
+                self.session_stats.chars_typed_correctly / self.session_stats.chars_typed_total
         
     def _update_wpm_text(self):
-        self.wpm_text.text = f"WPM: {self.typing_metrics_tracker.wpm}, " + \
-            f"Accuracy: {self.typing_metrics_tracker.accuracy:.2f}%"
+        self.wpm_text.text = f"WPM: {self.session_stats.wpm}, " + \
+            f"Accuracy: {self.session_stats.accuracy:.2f}%"
         
     def on_key_press(self, symbol, modifiers):
         if symbol == arcade.key.ESCAPE:
-            pause_view = PauseView(self)
+            pause_view = PauseView(self, self.session_stats)
             self.window.show_view(pause_view)
         else:
             self._play_typing_sound()
@@ -198,54 +222,27 @@ class InputTextManager():
     @property
     def input_text(self):
         return ''.join(self.text_input_buffer)
-    
 
-class TypingMetricsTracker():
-    """
-    Class for tracking metrics such as WPM, CPM and Accuracy
-    """
 
-    def __init__(self):
-        self.wpm = 0
-        self.time_elapsed = 0
-        self.words_typed_correctly = 0
-        self.characters_typed_correctly = 0
-        self.characters_typed_total = 0
-        self.accuracy = 0.0
-
-    def update_metrics(self, input_text_manager):
-        self.words_typed_correctly += 1
-        count_correct = len(input_text_manager.target_text)
-        count_total = 0
-        for _, counts in input_text_manager.char_confusion_matrix.items():
-            count_total += sum(counts.values())
-        self.characters_typed_correctly += count_correct
-        self.characters_typed_total += count_total
-        self._update_wpm()
-
-    def update_time(self, delta_time):
-        self.time_elapsed += delta_time
-
-    def reset_metrics(self):
-        self.wpm = 0
-        self.accuracy = 0.0
-        self.characters_typed_correctly = 0
-        self.characters_typed_total = 0
-        self.time_elapsed = 0
-        self._update_wpm()
-
-    def _update_wpm(self):
-        if self.time_elapsed >= 2:
-            self.wpm = int(self.characters_typed_correctly * 12 / self.time_elapsed)
-        if self.characters_typed_total > 0:
-            self.accuracy = 100.0 * self.characters_typed_correctly / self.characters_typed_total
+@dataclass
+class SessionStats:
+    char_confusion_matrix: defaultdict[str, defaultdict[str, int]] = field(
+        default_factory=lambda: defaultdict(lambda: defaultdict(int))
+    )
+    wpm: int = 0
+    words_typed: int = 0
+    chars_typed_correctly: int = 0
+    chars_typed_total: int = 0
+    accuracy: float = 0.0
+    duration_seconds: float = 0.0
 
 
 class PauseView(arcade.View):
 
-    def __init__(self, game_view):
+    def __init__(self, game_view, session_stats):
         super().__init__()
         self.game_view = game_view
+        self.session_stats = session_stats
         self.text_batch = Batch()
         self.title_text = arcade.Text(
             "Game Paused",
@@ -258,9 +255,9 @@ class PauseView(arcade.View):
             bold=True,
             batch=self.text_batch
         )
-        score_text = f"WPM: {self.game_view.typing_metrics_tracker.wpm}," + \
-            f" Words typed: {self.game_view.typing_metrics_tracker.words_typed_correctly}, " + \
-            f" Accuracy: {self.game_view.typing_metrics_tracker.accuracy:.2f}%"
+        score_text = f"WPM: {self.session_stats.wpm}," + \
+            f" Words typed: {self.session_stats.words_typed}, " + \
+            f" Accuracy: {self.session_stats.accuracy:.2f}%"
         self.score_text = arcade.Text(
             score_text,
             x = self.title_text.x,
@@ -328,4 +325,6 @@ class PauseView(arcade.View):
     def _return_to_main_menu(self):
         if self.game_view.current_music:
             self.game_view.current_music.pause()
+        with open("save.json", "w") as file:
+            json.dump(asdict(self.session_stats), file, indent=4)
         self.window.show_view(self.game_view.main_menu_view)
