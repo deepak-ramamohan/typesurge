@@ -3,15 +3,15 @@ from space_shooter.word_manager import WordManager
 from utils.resources import SEPIA_BACKGROUND
 from utils.colors import BROWN
 from pyglet.graphics import Batch
-from arcade.gui import (
-    UIManager,
-    UIAnchorLayout,
-    UIFlatButton,
-    UIBoxLayout
-)
-from utils.button_styles import sepia_button_style
 from ai_trainer.input_text_manager import InputTextManager
-from ai_trainer.session_stats import SessionStats, save_session_stats, save_session_stats_to_db, create_database, load_db
+from ai_trainer.session_stats import (
+    SessionStats, 
+    save_session_stats, 
+    save_session_stats_to_db, 
+    create_database, 
+    load_db
+)
+from utils.menu_view import MenuView
 
 
 class AITrainerView(arcade.View):
@@ -173,83 +173,37 @@ class AITrainerView(arcade.View):
         self.window.set_mouse_visible(True)
 
 
-class PauseView(arcade.View):
+class PauseView(MenuView):
 
     def __init__(self, game_view, session_stats):
-        super().__init__()
         self.game_view = game_view
         self.session_stats = session_stats
-        self.text_batch = Batch()
-        self.title_text = arcade.Text(
-            "Game Paused",
-            x = self.window.width // 2,
-            y = self.window.height // 2 + 100,
-            anchor_x="center",
-            font_name=self.game_view.FONT_NAME,
-            font_size=64,
-            color=BROWN,
-            bold=True,
-            batch=self.text_batch
-        )
+        self.TITLE_OFFSET_FROM_CENTER = 100
+        self.TITLE_FONT_SIZE = 64
         score_text = f"WPM: {self.session_stats.wpm}," + \
             f" Words typed: {self.session_stats.words_typed}, " + \
             f" Accuracy: {self.session_stats.accuracy:.2f}%"
-        self.score_text = arcade.Text(
-            score_text,
-            x = self.title_text.x,
-            y = self.title_text.y - 70,
-            anchor_x="center",
-            font_name=self.game_view.FONT_NAME,
-            font_size=48,
-            color=BROWN,
-            batch=self.text_batch
+        super().__init__(
+            title_text="Game Paused",
+            subtitle_text=score_text
         )
 
-        self.ui = UIManager()
-        self.anchor = self.ui.add(UIAnchorLayout())
-        self.BUTTON_WIDTH = 300
-
-        self.resume_button = UIFlatButton(
-            text="Resume",
-            width=self.BUTTON_WIDTH,
-            style=sepia_button_style
-        )
+        self.resume_button = self.create_button("Resume")
         @self.resume_button.event("on_click")
         def _(event):
             self._resume()
 
-        self.quit_to_main_menu_button = UIFlatButton(
-            text="Quit to Main Menu",
-            width=self.BUTTON_WIDTH,
-            style=sepia_button_style
-        )
+        self.quit_to_main_menu_button = self.create_button("Quit to Main Menu")
         @self.quit_to_main_menu_button.event("on_click")
         def _(event):
             self._return_to_main_menu()
 
-        self.box_layout = UIBoxLayout(space_between=15)
-        self.box_layout.add(self.resume_button)
-        self.box_layout.add(self.quit_to_main_menu_button)
-        self.anchor.add(
-            self.box_layout,
-            anchor_y="top",
-            align_y=-(self.height - self.score_text.y + 30)
+        self.initialize_buttons(
+            [
+                self.resume_button,
+                self.quit_to_main_menu_button
+            ]
         )
-
-    def on_show_view(self):
-        self.ui.enable()
-
-    def on_hide_view(self):
-        self.ui.disable()
-
-    def on_draw(self):
-        self.clear() # This is IMPORTANT! The text looks jagged without this!
-        arcade.draw_texture_rect(
-            SEPIA_BACKGROUND,
-            arcade.LBWH(0, 0, self.window.width, self.window.height)
-        )
-        self.text_batch.draw()
-        self.ui.draw()
 
     def on_key_press(self, symbol, modifiers):
         if symbol == arcade.key.ESCAPE:
