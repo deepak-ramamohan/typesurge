@@ -188,20 +188,20 @@ class PauseView(MenuView):
             subtitle_text=score_text
         )
 
-        self.resume_button = self.create_button("Resume")
-        @self.resume_button.event("on_click")
+        resume_button = self.create_button("Resume")
+        @resume_button.event("on_click")
         def _(event):
             self._resume()
 
-        self.quit_to_main_menu_button = self.create_button("Quit to Main Menu")
-        @self.quit_to_main_menu_button.event("on_click")
+        quit_to_main_menu_button = self.create_button("Quit to Main Menu")
+        @quit_to_main_menu_button.event("on_click")
         def _(event):
             self._return_to_main_menu()
 
         self.initialize_buttons(
             [
-                self.resume_button,
-                self.quit_to_main_menu_button
+                resume_button,
+                quit_to_main_menu_button
             ]
         )
 
