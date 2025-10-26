@@ -11,7 +11,7 @@ from arcade.gui import (
 )
 from utils.button_styles import sepia_button_style
 from ai_trainer.input_text_manager import InputTextManager
-from ai_trainer.session_stats import SessionStats, save_session_stats
+from ai_trainer.session_stats import SessionStats, save_session_stats, save_session_stats_to_db, create_database, load_db
 
 
 class AITrainerView(arcade.View):
@@ -262,4 +262,7 @@ class PauseView(arcade.View):
         if self.game_view.current_music:
             self.game_view.current_music.pause()
         save_session_stats(self.session_stats, "")
+        create_database()
+        save_session_stats_to_db(self.session_stats)
+        load_db()
         self.window.show_view(self.game_view.main_menu_view)
