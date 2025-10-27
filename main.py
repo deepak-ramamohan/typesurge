@@ -1,100 +1,46 @@
 import arcade
-from arcade.gui import (
-    UIManager,
-    UIAnchorLayout,
-    UIBoxLayout, 
-    UIFlatButton
-)
-from pyglet.graphics import Batch
 from space_shooter.views import SpaceShooterGameView
 from ai_trainer.ai_trainer import AITrainerView
-from utils.colors import BROWN
-from utils.button_styles import sepia_button_style
-from utils.resources import SEPIA_BACKGROUND
+from utils.menu_view import MenuView
 
 
-class MainMenuView(arcade.View):
+class MainMenuView(MenuView):
 
     def __init__(self):
-        super().__init__()
-        self.text_batch = Batch()
-        self.title_text = arcade.Text(
-            "Welcome to TypeMania!",
-            x = self.window.width // 2,
-            y = self.window.height // 2 + 50,
-            anchor_x="center",
-            font_name="Pixelzone",
-            font_size=72,
-            batch=self.text_batch,
-            bold=True,
-            color=BROWN
+        title_text = "Welcome to TypeMania!"
+        self.TITLE_OFFSET_FROM_CENTER = 75
+        self.SUBTITLE_OFFSET_FROM_TITLE = -10
+        self.TITLE_FONT_SIZE = 78
+        self.BUTTON_OFFSET_FROM_SUBTITLE = -50
+        super().__init__(
+            title_text=title_text,
+            subtitle_text=""
         )
-        self.ui = UIManager()
-        self.anchor = self.ui.add(UIAnchorLayout())
-        self.BUTTON_WIDTH = 300
-        self.space_shooter_button = UIFlatButton(
-            text="Space Shooter",
-            width=self.BUTTON_WIDTH,
-            style=sepia_button_style
-        )
-        @self.space_shooter_button.event("on_click")
+        space_shooter_button = self.create_button("Space Shooter")
+        @space_shooter_button.event("on_click")
         def _(event):
             self._start_game()
 
-        self.ai_trainer_button = UIFlatButton(
-            text="AI Trainer", 
-            width=self.BUTTON_WIDTH,
-            style=sepia_button_style
-        )
-        @self.ai_trainer_button.event("on_click")
+        ai_trainer_button = self.create_button("AI Trainer")
+        @ai_trainer_button.event("on_click")
         def _(event):
             self._start_ai_trainer()
  
-        self.quit_button = UIFlatButton(
-            text="Quit",
-            width=self.BUTTON_WIDTH,
-            style=sepia_button_style
-        )
-        @self.quit_button.event("on_click")
+        quit_button = self.create_button("Quit")
+        @quit_button.event("on_click")
         def _(event):
             self._quit_game()
 
-        self.box_layout = UIBoxLayout(space_between=15)
-        self.box_layout.add(self.space_shooter_button)
-        self.box_layout.add(self.ai_trainer_button)
-        self.box_layout.add(self.quit_button)
-        
-        self.anchor.add(
-            self.box_layout, 
-            anchor_y="top", 
-            align_y=-(self.height - self.title_text.y + 60)
+        self.initialize_buttons(
+            [
+                space_shooter_button,
+                ai_trainer_button,
+                quit_button
+            ]
         )
 
         self.main_menu_music = arcade.Sound("assets/sounds/hard_boiled.mp3", streaming=True)
-        self.current_music = None
-
-    def setup(self):
         self.current_music = arcade.play_sound(self.main_menu_music, loop=True)
-
-    def on_show_view(self):
-        # self.window.default_camera.use()
-        self.ui.enable()
-        if self.current_music:
-            self.current_music.play()
-
-    def on_hide_view(self):
-        self.ui.disable()
-        if self.current_music:
-            self.current_music.pause()
-
-    def on_draw(self):
-        self.clear() # This is IMPORTANT! The text looks jagged without this!
-        arcade.draw_texture_rect(
-            SEPIA_BACKGROUND,
-            arcade.LBWH(0, 0, self.window.width, self.window.height)
-        )
-        self.text_batch.draw()
-        self.ui.draw()
 
     def _start_game(self):
         game_view = SpaceShooterGameView(self)
@@ -121,7 +67,6 @@ def main():
     load_fonts()
     window = arcade.Window(1280, 720, "TypeMania")
     main_menu_view = MainMenuView()
-    main_menu_view.setup()
     window.show_view(main_menu_view)
     arcade.run()
 
