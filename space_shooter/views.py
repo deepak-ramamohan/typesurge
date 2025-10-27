@@ -5,15 +5,8 @@ from space_shooter.player import Player
 from space_shooter.enemies import EnemySpawner, EnemyWordList
 from space_shooter.explosion import Explosion
 from utils.helpers import calculate_angle_between_points, key_mapping
-from pyglet.graphics import Batch
-from arcade.gui import (
-    UIManager,
-    UIAnchorLayout,
-    UIBoxLayout,
-    UIFlatButton
-)
 from utils.resources import SEPIA_BACKGROUND, BULLET_SPRITE
-from utils.button_styles import sepia_button_style
+from utils.menu_view import MenuView
 from utils.colors import BROWN
 
 
@@ -263,79 +256,34 @@ class SpaceShooterGameView(arcade.View):
             self.current_music.pause()
 
 
-class PauseView(arcade.View):
+class PauseView(MenuView):
 
     def __init__(self, game_view):
-        super().__init__()
         self.game_view = game_view
-        self.text_batch = Batch()
-        self.title_text = arcade.Text(
-            "Game Paused",
-            x = self.window.width // 2,
-            y = self.window.height // 2 + 100,
-            anchor_x="center",
-            font_name=self.game_view.FONT_NAME,
-            font_size=64,
-            color=BROWN,
-            bold=True,
-            batch=self.text_batch
+        title_text = "Game Paused"
+        subtitle_text = f"Your Score: {self.game_view.score}"
+        self.TITLE_FONT_SIZE = 64
+        super().__init__(
+            title_text=title_text,
+            subtitle_text=subtitle_text
         )
-        self.score_text = arcade.Text(
-            f"Your Score: {self.game_view.score}", 
-            x = self.title_text.x,
-            y = self.title_text.y - 70,
-            anchor_x="center",
-            font_name=self.game_view.FONT_NAME,
-            font_size=48,
-            color=BROWN,
-            batch=self.text_batch
-        )
-        self.ui = UIManager()
-        self.anchor = self.ui.add(UIAnchorLayout())
-        self.BUTTON_WIDTH = 300
 
-        self.resume_button = UIFlatButton(
-            text="Resume",
-            width=self.BUTTON_WIDTH,
-            style=sepia_button_style
-        )
-        @self.resume_button.event("on_click")
+        resume_button = self.create_button("Resume")
+        @resume_button.event("on_click")
         def _(event):
             self._resume()
 
-        self.quit_to_main_menu_button = UIFlatButton(
-            text="Quit to Main Menu",
-            width=self.BUTTON_WIDTH,
-            style=sepia_button_style
-        )
-        @self.quit_to_main_menu_button.event("on_click")
+        quit_to_main_menu_button = self.create_button("Quit to Main Menu")
+        @quit_to_main_menu_button.event("on_click")
         def _(event):
             self._return_to_main_menu()
 
-        self.box_layout = UIBoxLayout(space_between=15)
-        self.box_layout.add(self.resume_button)
-        self.box_layout.add(self.quit_to_main_menu_button)
-        self.anchor.add(
-            self.box_layout,
-            anchor_y="top",
-            align_y=-(self.height - self.score_text.y + 30)
+        self.initialize_buttons(
+            [
+                resume_button,
+                quit_to_main_menu_button
+            ]
         )
-
-    def on_show_view(self):
-        self.window.default_camera.use()
-        self.ui.enable()
-
-    def on_hide_view(self):
-        self.ui.disable()
-
-    def on_draw(self):
-        self.clear() # This is IMPORTANT! The text looks jagged without this!
-        arcade.draw_texture_rect(
-            SEPIA_BACKGROUND,
-            arcade.LBWH(0, 0, self.window.width, self.window.height)
-        )
-        self.text_batch.draw()
-        self.ui.draw()
 
     def on_key_press(self, symbol, modifiers):
         if symbol == arcade.key.ESCAPE:
@@ -348,73 +296,27 @@ class PauseView(arcade.View):
         self.window.show_view(self.game_view.main_menu_view)
 
 
-class GameOverView(arcade.View):
-
-    FONT_NAME = "Pixelzone"
+class GameOverView(MenuView):
 
     def __init__(self, score, main_menu_view):
-        super().__init__()
         self.score = score
         self.main_menu_view = main_menu_view
-        self.text_batch = Batch()
-        self.title_text = arcade.Text(
-            "GAME OVER!",
-            x = self.window.width // 2,
-            y = self.window.height // 2 + 50,
-            anchor_x="center",
-            font_name=self.FONT_NAME,
-            font_size=64,
-            bold=True,
-            color=BROWN,
-            batch=self.text_batch
-        )
-        self.score_text = arcade.Text(
-            f"Your Score: {self.score}", 
-            x = self.title_text.x,
-            y = self.title_text.y - 70,
-            anchor_x="center",
-            font_name=self.FONT_NAME,
-            font_size=48,
-            color=BROWN,
-            batch=self.text_batch
+        score_text = f"Your Score: {self.score}"
+        super().__init__(
+            title_text="Game Over!",
+            subtitle_text=score_text
         )
 
-        self.ui = UIManager()
-        self.anchor = self.ui.add(UIAnchorLayout())
-        self.BUTTON_WIDTH = 300
-
-        self.continue_button = UIFlatButton(
-            text="Continue",
-            width=self.BUTTON_WIDTH,
-            style=sepia_button_style
-        )
-        @self.continue_button.event("on_click")
+        continue_button = self.create_button("Continue")
+        @continue_button.event("on_click")
         def _(event):
             self._continue_to_main_menu()
 
-        self.box_layout = UIBoxLayout(space_between=15)
-        self.box_layout.add(self.continue_button)
-        self.anchor.add(
-            self.box_layout,
-            anchor_y="top",
-            align_y=-(self.height - self.score_text.y + 30)
+        self.initialize_buttons(
+            [
+                continue_button
+            ]
         )
-
-    def on_show_view(self):
-        # self.window.default_camera.use()
-        self.ui.enable()
-
-    def on_hide_view(self):
-        self.ui.disable()
-
-    def on_draw(self):
-        self.clear() # This is IMPORTANT! The text looks jagged without this!
-        arcade.draw_texture_rect(
-            SEPIA_BACKGROUND,
-            arcade.LBWH(0, 0, self.window.width, self.window.height)
-        )
-        self.text_batch.draw()
-        self.ui.draw()
 
     def _continue_to_main_menu(self):
         self.window.show_view(self.main_menu_view)
