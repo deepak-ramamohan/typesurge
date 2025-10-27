@@ -57,7 +57,7 @@ class MenuView(arcade.View):
         self.box_layout = UIBoxLayout(space_between=15)
         self.current_music = None
 
-    def on_draw(self):
+    def on_draw(self) -> None:
         """
         Performs the following operations:
         1. Clears the screen
@@ -73,18 +73,18 @@ class MenuView(arcade.View):
         self.text_batch.draw()
         self.ui.draw()
 
-    def on_show_view(self):
+    def on_show_view(self) -> None:
         self.ui.enable()
         if self.current_music:
             self.current_music.play()
 
-    def on_hide_view(self):
+    def on_hide_view(self) -> None:
         self.ui.disable()
         if self.current_music:
             self.current_music.pause()
 
     @classmethod
-    def create_button(cls, button_text):
+    def create_button(cls, button_text: str) -> UIFlatButton:
         """
         Creates a standardized button
         """
@@ -95,7 +95,7 @@ class MenuView(arcade.View):
         )
         return button
     
-    def initialize_buttons(self, buttons_list):
+    def initialize_buttons(self, buttons_list: list[UIFlatButton]) -> None:
         """
         Create all the buttons from the list
         """
