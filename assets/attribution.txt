@@ -3,3 +3,4 @@ Asteroid icon: https://www.flaticon.com/free-icon/asteroid_9634586
 Spaceship 1: https://www.flaticon.com/free-icon/spaceship_16831037
 Spaceship 2: https://www.flaticon.com/free-icon/rocket_2940411
 Bullet: https://www.flaticon.com/free-icon/bullet_18930714
+User: https://www.flaticon.com/free-icon/account_3033143
