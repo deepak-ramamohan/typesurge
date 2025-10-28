@@ -1,5 +1,5 @@
 import arcade
-from space_shooter.word_manager import WordManager
+from utils.word_manager import WordManager
 from utils.resources import SEPIA_BACKGROUND
 from utils.colors import BROWN
 from pyglet.graphics import Batch
@@ -7,6 +7,9 @@ from ai_trainer.input_text_manager import InputTextManager
 from ai_trainer.session_stats import SessionStats
 from utils.menu_view import MenuView
 from utils.save_manager import SaveManager
+from utils import global_state
+from utils.resources import AI_TRAINER_MUSIC
+from utils.music_manager import MusicManager
 
 
 class AITrainerView(arcade.View):
@@ -18,11 +21,12 @@ class AITrainerView(arcade.View):
     WORD_CHARACTER_COUNT_MIN = 4
     WORD_CHARACTER_COUNT_MAX = 8
 
-    def __init__(self, main_menu_view, user_profile):
+    def __init__(self, main_menu_view, words_count):
         super().__init__()
         self.background = SEPIA_BACKGROUND
         self.main_menu_view = main_menu_view
-        self.user_profile = user_profile
+        self.words_count = words_count
+        self.user_profile = global_state.current_user_profile
         self.word_manager = WordManager()
         self.input_text_manager = InputTextManager()
         self.session_stats = SessionStats()
@@ -69,8 +73,6 @@ class AITrainerView(arcade.View):
             batch=self.text_batch
         )
         self.typing_sound = arcade.Sound("assets/sounds/eklee-KeyPressMac06.wav")
-        self.game_music = arcade.Sound("assets/sounds/vibing_over_venus.mp3", streaming=True)
-        self.current_music = None
         self.setup()
 
     def setup(self):
@@ -84,8 +86,7 @@ class AITrainerView(arcade.View):
         )
         self.input_text.text = ""
         self.input_text_manager.set_target_text(self.target_text.text)
-        if self.current_music is None:
-            self.current_music = arcade.play_sound(self.game_music, loop=True)
+        MusicManager.play_music(AI_TRAINER_MUSIC)
     
     def on_draw(self):
         self.clear()
@@ -105,6 +106,8 @@ class AITrainerView(arcade.View):
                 max_character_count=self.WORD_CHARACTER_COUNT_MAX
             )
             self._update_metrics()
+            if self.session_stats.words_typed >= self.words_count:
+                self._complete_game()
             self.input_text_manager.set_target_text(self.target_text.text)
         self._update_wpm_text()
 
@@ -135,10 +138,14 @@ class AITrainerView(arcade.View):
         
     def on_key_press(self, symbol, modifiers):
         if symbol == arcade.key.ESCAPE:
-            pause_view = PauseView(self, self.user_profile, self.session_stats)
+            pause_view = PauseView(self, self.session_stats)
             self.window.show_view(pause_view)
         else:
             self._play_typing_sound()
+
+    def _complete_game(self):
+        game_completed_view = GameCompletedView(self, self.session_stats)
+        self.window.show_view(game_completed_view)
 
     def _play_typing_sound(self):
         arcade.play_sound(self.typing_sound, volume=0.75)
@@ -162,8 +169,6 @@ class AITrainerView(arcade.View):
     
     def on_show_view(self):
         self.window.set_mouse_visible(False)
-        if self.current_music:
-            self.current_music.play()
 
     def on_hide_view(self):
         self.window.set_mouse_visible(True)
@@ -171,10 +176,9 @@ class AITrainerView(arcade.View):
 
 class PauseView(MenuView):
 
-    def __init__(self, game_view, user_profile, session_stats):
+    def __init__(self, game_view, session_stats):
         self.game_view = game_view
-        self.user_profile = user_profile
-        self.save_manager = SaveManager(user_profile)
+        self.save_manager = SaveManager(global_state.current_user_profile)
         self.session_stats = session_stats
         self.TITLE_OFFSET_FROM_CENTER = 100
         self.TITLE_FONT_SIZE = 64
@@ -211,8 +215,90 @@ class PauseView(MenuView):
         self.window.show_view(self.game_view)
 
     def _return_to_main_menu(self):
-        if self.game_view.current_music:
-            self.game_view.current_music.pause()
         self.save_manager.save_session_stats_to_db(self.session_stats)
         self.save_manager.load_and_print_db()
         self.window.show_view(self.game_view.main_menu_view)
+
+
+class GameCompletedView(MenuView):
+
+    def __init__(self, game_view, session_stats):
+        self.game_view = game_view
+        self.save_manager = SaveManager(global_state.current_user_profile)
+        self.session_stats = session_stats
+        self.TITLE_OFFSET_FROM_CENTER = 100
+        self.TITLE_FONT_SIZE = 64
+        score_text = f"WPM: {self.session_stats.wpm}," + \
+            f" Words typed: {self.session_stats.words_typed}, " + \
+            f" Accuracy: {self.session_stats.accuracy:.2f}%"
+        super().__init__(
+            title_text="Session Completed!",
+            subtitle_text=score_text
+        )
+
+        continue_button = self.create_button("Continue")
+        @continue_button.event("on_click")
+        def _(event):
+            self._return_to_main_menu()
+
+        self.initialize_buttons(
+            [
+                continue_button
+            ]
+        )
+
+    def on_key_press(self, symbol, modifiers):
+        if symbol == arcade.key.ESCAPE:
+            self._return_to_main_menu()
+
+    def _return_to_main_menu(self):
+        self.save_manager.save_session_stats_to_db(self.session_stats)
+        self.save_manager.load_and_print_db()
+        self.window.show_view(self.game_view.main_menu_view)
+
+
+class ModeSelectionView(MenuView):
+
+    def __init__(self, previous_view, main_menu_view):
+        self.main_menu_view = main_menu_view
+        self.user_profile = global_state.current_user_profile
+        self.TITLE_OFFSET_FROM_CENTER = 100
+        self.TITLE_FONT_SIZE = 64
+        super().__init__(
+            title_text="AI Trainer",
+            subtitle_text="Choose your mode",
+            previous_view=previous_view
+        )
+
+        button_25_words = self.create_button("25 Words")
+        @button_25_words.event("on_click")
+        def _(event):
+            self.start_game(25)
+
+        button_50_words = self.create_button("50 Words")
+        @button_50_words.event("on_click")
+        def _(event):
+            self.start_game(50)
+
+        button_100_words = self.create_button("100 Words")
+        @button_100_words.event("on_click")
+        def _(event):
+            self.start_game(100)
+
+        button_back = self.create_button("Back")
+        @button_back.event("on_click")
+        def _(event):
+            self.return_to_previous_view()
+
+        self.initialize_buttons(
+            [
+                button_25_words,
+                button_50_words,
+                button_100_words,
+                button_back
+            ]
+        )
+    
+    def start_game(self, words_count):
+        ai_trainer_view = AITrainerView(self.main_menu_view, words_count)
+        self.window.show_view(ai_trainer_view)
