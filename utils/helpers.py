@@ -1,6 +1,6 @@
 import math
 import arcade
-from PIL import Image, ImageChops
+from PIL import Image, ImageOps, ImageChops
 
 
 def calculate_angle_between_points(point1, point2):
@@ -42,6 +42,22 @@ def tint_image(image: Image.Image, color: tuple[int, int, int]) -> Image.Image:
     final_image.paste(tinted_image, (0, 0), mask=image.getchannel("A"))
     
     return final_image
+
+
+def load_image(path: str, invert: bool = True, tint_color: tuple[int, int, int] = None) -> Image.Image:
+    image = Image.open(path)
+    if invert:
+        if image.mode == 'RGBA':
+            r,g,b,a = image.split()
+            rgb_image = Image.merge('RGB', (r,g,b))
+            output_image = ImageOps.invert(rgb_image)
+            r2,g2,b2 = output_image.split()
+            output_image = Image.merge('RGBA', (r2,g2,b2,a))
+        else:
+            output_image = ImageOps.invert(image)
+    if tint_color is not None:
+        output_image = tint_image(output_image, tint_color)
+    return output_image
 
 
 key_mapping = {
