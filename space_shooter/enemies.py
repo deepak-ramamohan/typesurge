@@ -4,9 +4,9 @@ import random
 import math
 from utils.helpers import calculate_angle_between_points
 from pyglet.graphics import Batch
-from space_shooter.word_manager import WordManager
+from utils.word_manager import WordManager
 import numpy as np
-from utils.colors import BROWN, BEIGE
+from utils.colors import BROWN
 from utils.resources import METEOR_SPRITE_1, METEOR_SPRITE_2
 
 
