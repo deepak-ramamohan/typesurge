@@ -1,12 +1,15 @@
 import arcade
 from space_shooter.views import SpaceShooterGameView
-from ai_trainer.ai_trainer import AITrainerView
+from ai_trainer.ai_trainer import ModeSelectionView
 from utils.menu_view import MenuView
 from utils.resources import USER_PROFILE_SPRITE
 from utils.colors import BROWN
 from arcade.gui import UIFlatButton, UIImage
 from utils.button_styles import transparent_button_style
 from utils.user_profile import UserProfile
+from utils.resources import MAIN_MENU_MUSIC
+from utils.music_manager import MusicManager
+from utils import global_state
 
 
 class MainMenuView(MenuView):
@@ -44,8 +47,7 @@ class MainMenuView(MenuView):
             ]
         )
 
-        self.main_menu_music = arcade.Sound("assets/sounds/hard_boiled.mp3", streaming=True)
-        self.current_music = arcade.play_sound(self.main_menu_music, loop=True)
+        MusicManager.play_music(MAIN_MENU_MUSIC)
 
         self._initialize_user_profile()
         
@@ -56,6 +58,7 @@ class MainMenuView(MenuView):
             UserProfile(name="user_3", display_name="User 3")
         ]
         self.user_index = 0
+        global_state.current_user_profile = self.user_profiles[self.user_index]
         BUTTON_SIZE = 45
         user_profile_button = UIFlatButton(
             text="",
@@ -86,16 +89,21 @@ class MainMenuView(MenuView):
         @user_profile_button.event("on_click")
         def _(event):
             self.user_index = (self.user_index + 1) % len(self.user_profiles)
-            user_profile_text.text = self.user_profiles[self.user_index].display_name
+            global_state.current_user_profile = self.user_profiles[self.user_index]
+            user_profile_text.text = global_state.current_user_profile.display_name
         self.ui.add(user_profile_button)
+
+    def on_show_view(self):
+        super().on_show_view()
+        if not MusicManager.is_music_playing_same(MAIN_MENU_MUSIC):
+            MusicManager.play_music(MAIN_MENU_MUSIC)
 
     def _start_game(self):
         game_view = SpaceShooterGameView(self)
-        game_view.setup()
         self.window.show_view(game_view)
 
     def _start_ai_trainer(self):
-        trainer_view = AITrainerView(self, self.user_profiles[self.user_index])
+        trainer_view = ModeSelectionView(self, self)
         self.window.show_view(trainer_view)
 
     def _quit_game(self):
