@@ -1,5 +1,6 @@
 import math
 import arcade
+from PIL import Image, ImageChops
 
 
 def calculate_angle_between_points(point1, point2):
@@ -10,6 +11,37 @@ def calculate_angle_between_points(point1, point2):
     dx = point2[0] - point1[0]
     theta = math.atan2(dy, dx)
     return theta
+
+
+def tint_image(image: Image.Image, color: tuple[int, int, int]) -> Image.Image:
+    """
+    Applies a multiplicative tint to a PIL Image.
+    This replicates the logic of arcade.Sprite.color.
+    """
+    # Make sure image is RGBA
+    if image.mode != "RGBA":
+        image = image.convert("RGBA")
+        
+    # Create a new solid-color image of the same size.
+    # The tint color must include an Alpha channel (255 for solid).
+    tint_layer = Image.new("RGBA", image.size, color + (255,))
+    
+    # Multiply the original image with the tint layer
+    tinted_image = ImageChops.multiply(image, tint_layer)
+    
+    # The multiplication also multiplies the alpha channels, which
+    # can make semi-transparent areas *more* transparent.
+    # To avoid this and keep the original's transparency,
+    # we can composite the tinted image back onto a transparent
+    # background, using the original's alpha as the mask.
+    
+    # Create a new transparent image
+    final_image = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    
+    # Paste the tinted image, but use the *original* image's alpha channel as the mask
+    final_image.paste(tinted_image, (0, 0), mask=image.getchannel("A"))
+    
+    return final_image
 
 
 key_mapping = {
