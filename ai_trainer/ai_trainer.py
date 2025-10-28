@@ -4,14 +4,9 @@ from utils.resources import SEPIA_BACKGROUND
 from utils.colors import BROWN
 from pyglet.graphics import Batch
 from ai_trainer.input_text_manager import InputTextManager
-from ai_trainer.session_stats import (
-    SessionStats, 
-    save_session_stats, 
-    save_session_stats_to_db, 
-    create_database, 
-    load_db
-)
+from ai_trainer.session_stats import SessionStats
 from utils.menu_view import MenuView
+from utils.save_manager import SaveManager
 
 
 class AITrainerView(arcade.View):
@@ -23,10 +18,11 @@ class AITrainerView(arcade.View):
     WORD_CHARACTER_COUNT_MIN = 4
     WORD_CHARACTER_COUNT_MAX = 8
 
-    def __init__(self, main_menu_view):
+    def __init__(self, main_menu_view, user_profile):
         super().__init__()
         self.background = SEPIA_BACKGROUND
         self.main_menu_view = main_menu_view
+        self.user_profile = user_profile
         self.word_manager = WordManager()
         self.input_text_manager = InputTextManager()
         self.session_stats = SessionStats()
@@ -139,7 +135,7 @@ class AITrainerView(arcade.View):
         
     def on_key_press(self, symbol, modifiers):
         if symbol == arcade.key.ESCAPE:
-            pause_view = PauseView(self, self.session_stats)
+            pause_view = PauseView(self, self.user_profile, self.session_stats)
             self.window.show_view(pause_view)
         else:
             self._play_typing_sound()
@@ -175,8 +171,10 @@ class AITrainerView(arcade.View):
 
 class PauseView(MenuView):
 
-    def __init__(self, game_view, session_stats):
+    def __init__(self, game_view, user_profile, session_stats):
         self.game_view = game_view
+        self.user_profile = user_profile
+        self.save_manager = SaveManager(user_profile)
         self.session_stats = session_stats
         self.TITLE_OFFSET_FROM_CENTER = 100
         self.TITLE_FONT_SIZE = 64
@@ -215,8 +213,6 @@ class PauseView(MenuView):
     def _return_to_main_menu(self):
         if self.game_view.current_music:
             self.game_view.current_music.pause()
-        save_session_stats(self.session_stats, "")
-        create_database()
-        save_session_stats_to_db(self.session_stats)
-        load_db()
+        self.save_manager.save_session_stats_to_db(self.session_stats)
+        self.save_manager.load_and_print_db()
         self.window.show_view(self.game_view.main_menu_view)
