@@ -27,7 +27,8 @@ class MenuView(arcade.View):
     def __init__(
         self,
         title_text: str,
-        subtitle_text: str
+        subtitle_text: str,
+        previous_view: arcade.View | None = None
     ) -> None:
         super().__init__()
         self.text_batch = Batch()
@@ -55,7 +56,7 @@ class MenuView(arcade.View):
         self.ui = UIManager()
         self.anchor = self.ui.add(UIAnchorLayout())
         self.box_layout = UIBoxLayout(space_between=15)
-        self.current_music = None
+        self.previous_view = previous_view
 
     def on_draw(self) -> None:
         """
@@ -75,13 +76,17 @@ class MenuView(arcade.View):
 
     def on_show_view(self) -> None:
         self.ui.enable()
-        if self.current_music:
-            self.current_music.play()
 
     def on_hide_view(self) -> None:
         self.ui.disable()
-        if self.current_music:
-            self.current_music.pause()
+
+    def return_to_previous_view(self) -> None:
+        if self.previous_view is not None:
+            self.window.show_view(self.previous_view)
+
+    def on_key_press(self, symbol, modifiers):
+        if symbol == arcade.key.ESCAPE:
+            self.return_to_previous_view()
 
     @classmethod
     def create_button(cls, button_text: str) -> UIFlatButton:
