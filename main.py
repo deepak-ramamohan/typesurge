@@ -2,6 +2,11 @@ import arcade
 from space_shooter.views import SpaceShooterGameView
 from ai_trainer.ai_trainer import AITrainerView
 from utils.menu_view import MenuView
+from utils.resources import USER_PROFILE_SPRITE
+from utils.colors import BROWN
+from arcade.gui import UIFlatButton, UIImage
+from utils.button_styles import transparent_button_style
+from utils.user_profile import UserProfile
 
 
 class MainMenuView(MenuView):
@@ -42,13 +47,55 @@ class MainMenuView(MenuView):
         self.main_menu_music = arcade.Sound("assets/sounds/hard_boiled.mp3", streaming=True)
         self.current_music = arcade.play_sound(self.main_menu_music, loop=True)
 
+        self._initialize_user_profile()
+        
+    def _initialize_user_profile(self):
+        self.user_profiles = [
+            UserProfile(name="user_1", display_name="User 1"),
+            UserProfile(name="user_2", display_name="User 2"),
+            UserProfile(name="user_3", display_name="User 3")
+        ]
+        self.user_index = 0
+        BUTTON_SIZE = 45
+        user_profile_button = UIFlatButton(
+            text="",
+            x=15,
+            y=10,
+            height=BUTTON_SIZE,
+            width=BUTTON_SIZE,
+            style=transparent_button_style
+        )
+        user_profile_button.add(
+            child=UIImage(
+                texture=USER_PROFILE_SPRITE,
+                width=BUTTON_SIZE - 3,
+                height=BUTTON_SIZE - 3
+            )
+        )
+        user_profile_text = arcade.Text(
+            text=self.user_profiles[self.user_index].display_name, 
+            x=user_profile_button.right + 10,
+            y=user_profile_button.center_y,
+            anchor_x="left",
+            anchor_y="center",
+            font_name=self.FONT_NAME,
+            font_size=32,
+            batch=self.text_batch,
+            color=BROWN
+        )
+        @user_profile_button.event("on_click")
+        def _(event):
+            self.user_index = (self.user_index + 1) % len(self.user_profiles)
+            user_profile_text.text = self.user_profiles[self.user_index].display_name
+        self.ui.add(user_profile_button)
+
     def _start_game(self):
         game_view = SpaceShooterGameView(self)
         game_view.setup()
         self.window.show_view(game_view)
 
     def _start_ai_trainer(self):
-        trainer_view = AITrainerView(self)
+        trainer_view = AITrainerView(self, self.user_profiles[self.user_index])
         self.window.show_view(trainer_view)
 
     def _quit_game(self):
