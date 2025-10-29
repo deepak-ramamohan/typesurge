@@ -1,26 +1,27 @@
 import arcade
 import pyglet
+from pyglet.graphics import Batch
 from utils.word_manager import WordManager
 from utils.resources import SEPIA_BACKGROUND
 from utils.colors import BROWN
-from pyglet.graphics import Batch
-from ai_trainer.input_text_manager import InputTextManager
-from ai_trainer.session_stats import SessionStats
 from utils.menu_view import MenuView
 from utils.save_manager import SaveManager
 from utils import global_state
 from utils.resources import AI_TRAINER_MUSIC
 from utils.music_manager import MusicManager
+from ai_trainer.session_stats import SessionStats
 
 
 class AITrainerView(arcade.View):
 
-    TARGET_TEXT_COLOR = BROWN
-    INPUT_TEXT_COLOR = arcade.color.ANTIQUE_BRASS
+    UNMATCHED_TEXT_COLOR = BROWN[:3] + (170,)
+    CORRECT_TEXT_COLOR = BROWN
+    INCORRECT_TEXT_COLOR = arcade.color.AUBURN
     WPM_TEXT_COLOR = arcade.color.ANTIQUE_RUBY
     FONT_NAME = "Pixelzone"
     WORD_CHARACTER_COUNT_MIN = 4
     WORD_CHARACTER_COUNT_MAX = 8
+    SPACE_CHAR = '·'
 
     def __init__(self, main_menu_view, words_count):
         super().__init__()
@@ -29,67 +30,47 @@ class AITrainerView(arcade.View):
         self.words_count = words_count
         self.user_profile = global_state.current_user_profile
         self.word_manager = WordManager()
-        self.input_text_manager = InputTextManager()
+        self.input_text = [
+            self.word_manager.generate_word(
+                min_character_count=self.WORD_CHARACTER_COUNT_MIN,
+                max_character_count=self.WORD_CHARACTER_COUNT_MAX
+            )
+            for _ in range(self.words_count)
+        ]
+        self.input_text = " ".join(self.input_text)
+        self.padding_size = 150
+        self.padded_text = " " * self.padding_size + self.input_text + " " * self.padding_size
         self.session_stats = SessionStats()
-        self.text_batch = Batch()
-        self.temp_padding = 150
-        self.temp_document = pyglet.text.document.FormattedDocument(" " * 2 * self.temp_padding)
-        self.temp_document.set_style(
+        self.pyglet_batch = Batch()
+        self.text_document = pyglet.text.document.FormattedDocument(
+            text=self.padded_text
+        )
+        self.text_document.set_style(
             start=0, 
-            end=len(self.temp_document.text),
+            end=len(self.text_document.text),
             attributes=dict(
                 font_name=self.FONT_NAME,
-                font_size=64,
-                color=BROWN
+                font_size=68,
+                color=self.UNMATCHED_TEXT_COLOR
             )
         )
-        self.temp_input_text = pyglet.text.layout.IncrementalTextLayout(
-            document=self.temp_document,
-            width=1000,
-            height=200,
-            x=10,
-            y=20,
+        self.text_layout = pyglet.text.layout.IncrementalTextLayout(
+            document=self.text_document,
+            width=self.width - 50,
+            height=100,
+            x=self.width//2,
+            y=self.height//2 + 50,
+            anchor_x="center",
+            anchor_y="center",
             multiline=False,
-            batch=self.text_batch
+            batch=self.pyglet_batch
         )
-        self.temp_caret = pyglet.text.caret.Caret(
-            self.temp_input_text,
+        self.caret = pyglet.text.caret.Caret(
+            self.text_layout,
             color=BROWN
         )
-        self.temp_caret.position = self.temp_padding
-        self.update_layout_view()
-
-        self.target_text = arcade.Text(
-            "", 
-            x=self.window.width//2, 
-            y=self.window.height//2 + 100, 
-            anchor_x="center",
-            font_name=self.FONT_NAME,
-            font_size=64,
-            color=self.TARGET_TEXT_COLOR,
-            bold=True,
-            batch=self.text_batch
-        )
-        self.next_word_text = arcade.Text(
-            "", 
-            x=self.target_text.x, 
-            y=self.target_text.y - 60, 
-            anchor_x="center",
-            font_name=self.FONT_NAME,
-            font_size=36,
-            color=self.TARGET_TEXT_COLOR,
-            batch=self.text_batch
-        )
-        self.input_text = arcade.Text(
-            "", 
-            x=self.target_text.x, 
-            y=self.target_text.y - 150, 
-            anchor_x="center",
-            font_name=self.FONT_NAME,
-            font_size=64,
-            color=self.INPUT_TEXT_COLOR,
-            batch=self.text_batch
-        )
+        self.caret.position = self.padding_size
+        self.center_text_layout()
         self.wpm_text = arcade.Text(
             "",
             x=self.window.width//2,
@@ -98,23 +79,10 @@ class AITrainerView(arcade.View):
             font_name="Pixelzone",
             font_size=50,
             color=self.WPM_TEXT_COLOR,
-            batch=self.text_batch
+            batch=self.pyglet_batch
         )
         self.typing_sound = arcade.Sound("assets/sounds/eklee-KeyPressMac06.wav")
-        self.setup()
-
-    def setup(self):
-        self.target_text.text = self.word_manager.generate_word(
-            min_character_count=self.WORD_CHARACTER_COUNT_MIN, 
-            max_character_count=self.WORD_CHARACTER_COUNT_MAX
-        )
-        self.next_word_text.text = self.word_manager.generate_word(
-            min_character_count=self.WORD_CHARACTER_COUNT_MIN, 
-            max_character_count=self.WORD_CHARACTER_COUNT_MAX
-        )
-        self.input_text.text = ""
-        self.input_text_manager.set_target_text(self.target_text.text)
-        MusicManager.play_music(AI_TRAINER_MUSIC)
+        MusicManager.play_music(AI_TRAINER_MUSIC) 
     
     def on_draw(self):
         self.clear()
@@ -122,36 +90,61 @@ class AITrainerView(arcade.View):
             SEPIA_BACKGROUND,
             arcade.LBWH(0, 0, self.window.width, self.window.height)
         )
-        self.text_batch.draw()
+        self.pyglet_batch.draw()
+
+    def capture_character_input(self, input):
+        correct_char = self.padded_text[self.caret.position]
+        self.session_stats.char_confusion_matrix[correct_char][input] += 1
+        if input == correct_char:
+            self.session_stats.chars_typed_correctly += 1
+            self.text_document.set_style(
+                self.caret.position,
+                self.caret.position + 1,
+                attributes=dict(
+                    color=self.CORRECT_TEXT_COLOR
+                )
+            )
+        else:
+            if correct_char == " ":
+                self.text_document.delete_text(self.caret.position, self.caret.position + 1)
+                self.text_document.insert_text(self.caret.position, self.SPACE_CHAR)
+            self.text_document.set_style(
+                self.caret.position,
+                self.caret.position + 1,
+                attributes=dict(
+                    color=self.INCORRECT_TEXT_COLOR
+                )
+            )
+        self.session_stats.chars_typed_total += 1
+        self.caret.position += 1
+        if self.caret.position == self.padding_size + len(self.input_text):
+            self._complete_game()
+        self.center_text_layout()
+
+    def capture_backspace(self):
+        if self.caret.position > self.padding_size:
+            self.caret.position -= 1
+            if self.text_document.text[self.caret.position] == self.SPACE_CHAR:
+                self.text_document.delete_text(self.caret.position, self.caret.position + 1)
+                self.text_document.insert_text(self.caret.position, " ")
+            self.text_document.set_style(
+                start=self.caret.position,
+                end=self.caret.position + 1,
+                attributes=dict(
+                    color=self.UNMATCHED_TEXT_COLOR
+                )
+            )
+            self.center_text_layout()
+
+    def center_text_layout(self):
+        """
+        Updates the horizontal scroll on the layout so that the caret is in the center
+        """    
+        caret_x_pos = self.text_layout.get_point_from_position(self.caret.position)[0]
+        self.text_layout.view_x = caret_x_pos - (self.width / 2)
 
     def on_update(self, delta_time):
         self.session_stats.duration_seconds += delta_time
-        self.input_text.text = self.input_text_manager.input_text
-        if self.input_text_manager.is_input_matching_target():
-            self.target_text.text = self.next_word_text.text
-            self.next_word_text.text = self.word_manager.generate_word(
-                min_character_count=self.WORD_CHARACTER_COUNT_MIN,
-                max_character_count=self.WORD_CHARACTER_COUNT_MAX
-            )
-            self._update_metrics()
-            if self.session_stats.words_typed >= self.words_count:
-                self._complete_game()
-            self.input_text_manager.set_target_text(self.target_text.text)
-        self._update_wpm_text()
-
-    def _update_metrics(self):
-        self.session_stats.words_typed += 1
-        count_correct = len(self.input_text_manager.target_text)
-        count_total = 0
-        for char_expected, counts in self.input_text_manager.char_confusion_matrix.items():
-            for char_actual, count in counts.items():
-                self.session_stats.char_confusion_matrix[char_expected][char_actual] += count
-                count_total += count
-        self.session_stats.chars_typed_correctly += count_correct
-        self.session_stats.chars_typed_total += count_total
-        self._update_wpm()
-    
-    def _update_wpm(self):
         if self.session_stats.duration_seconds >= 2:
             self.session_stats.wpm = int(
                 self.session_stats.chars_typed_correctly * 12 / self.session_stats.duration_seconds
@@ -159,8 +152,6 @@ class AITrainerView(arcade.View):
         if self.session_stats.chars_typed_total > 0:
             self.session_stats.accuracy = 100.0 * \
                 self.session_stats.chars_typed_correctly / self.session_stats.chars_typed_total
-        
-    def _update_wpm_text(self):
         self.wpm_text.text = f"WPM: {self.session_stats.wpm}, " + \
             f"Accuracy: {self.session_stats.accuracy:.2f}%"
         
@@ -185,30 +176,14 @@ class AITrainerView(arcade.View):
         because arcade probably inherits pyglet.window
         """
         if text not in {'\r', '\n', '\r\n'}:
-            self.input_text_manager.capture_character_input(text)
-            self.input_text.text = self.input_text_manager.input_text
-            self.temp_document.insert_text(start=self.temp_caret.position, text=text)
-            self.temp_caret.position += 1
-            self.update_layout_view()
-
-    def update_layout_view(self):
-        """Updates the caret's position and centers the view on it."""
-        
-        caret_x_pos = self.temp_input_text.get_point_from_position(self.temp_caret.position)[0]
-        
-        # At start: input_index=100
-        #           caret_x_pos is now a positive pixel value (e.g., 800)
-        #           desired_view_x = 800 - (750 / 2) = 425
-        # This is a positive number, so the layout will scroll correctly.
-        desired_view_x = caret_x_pos - (self.width / 2)
-        self.temp_input_text.view_x = desired_view_x
+            self.capture_character_input(input=text)
             
     def on_text_motion(self, motion):
         """
         Identifying when the backspace key is pressed (or held pressed)
         """
         if motion == arcade.key.MOTION_BACKSPACE:
-            self.input_text_manager.capture_backspace()
+            self.capture_backspace()
     
     def on_show_view(self):
         self.window.set_mouse_visible(False)
@@ -226,7 +201,6 @@ class PauseView(MenuView):
         self.TITLE_OFFSET_FROM_CENTER = 100
         self.TITLE_FONT_SIZE = 64
         score_text = f"WPM: {self.session_stats.wpm}," + \
-            f" Words typed: {self.session_stats.words_typed}, " + \
             f" Accuracy: {self.session_stats.accuracy:.2f}%"
         super().__init__(
             title_text="Game Paused",
@@ -272,7 +246,6 @@ class GameCompletedView(MenuView):
         self.TITLE_OFFSET_FROM_CENTER = 100
         self.TITLE_FONT_SIZE = 64
         score_text = f"WPM: {self.session_stats.wpm}," + \
-            f" Words typed: {self.session_stats.words_typed}, " + \
             f" Accuracy: {self.session_stats.accuracy:.2f}%"
         super().__init__(
             title_text="Session Completed!",
