@@ -32,14 +32,14 @@ class AITrainerView(arcade.View):
         self.input_text_manager = InputTextManager()
         self.session_stats = SessionStats()
         self.text_batch = Batch()
-        self.temp_document = pyglet.text.document.FormattedDocument(" ")
+        self.temp_padding = 150
+        self.temp_document = pyglet.text.document.FormattedDocument(" " * 2 * self.temp_padding)
         self.temp_document.set_style(
             start=0, 
             end=len(self.temp_document.text),
             attributes=dict(
                 font_name=self.FONT_NAME,
                 font_size=64,
-                bold=True,
                 color=BROWN
             )
         )
@@ -56,7 +56,8 @@ class AITrainerView(arcade.View):
             self.temp_input_text,
             color=BROWN
         )
-        self.temp_caret.position = 0
+        self.temp_caret.position = self.temp_padding
+        self.update_layout_view()
 
         self.target_text = arcade.Text(
             "", 
