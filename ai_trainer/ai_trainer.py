@@ -1,4 +1,5 @@
 import arcade
+import pyglet
 from utils.word_manager import WordManager
 from utils.resources import SEPIA_BACKGROUND
 from utils.colors import BROWN
@@ -31,6 +32,32 @@ class AITrainerView(arcade.View):
         self.input_text_manager = InputTextManager()
         self.session_stats = SessionStats()
         self.text_batch = Batch()
+        self.temp_document = pyglet.text.document.FormattedDocument(" ")
+        self.temp_document.set_style(
+            start=0, 
+            end=len(self.temp_document.text),
+            attributes=dict(
+                font_name=self.FONT_NAME,
+                font_size=64,
+                bold=True,
+                color=BROWN
+            )
+        )
+        self.temp_input_text = pyglet.text.layout.IncrementalTextLayout(
+            document=self.temp_document,
+            width=1000,
+            height=200,
+            x=10,
+            y=20,
+            multiline=False,
+            batch=self.text_batch
+        )
+        self.temp_caret = pyglet.text.caret.Caret(
+            self.temp_input_text,
+            color=BROWN
+        )
+        self.temp_caret.position = 0
+
         self.target_text = arcade.Text(
             "", 
             x=self.window.width//2, 
@@ -159,6 +186,21 @@ class AITrainerView(arcade.View):
         if text not in {'\r', '\n', '\r\n'}:
             self.input_text_manager.capture_character_input(text)
             self.input_text.text = self.input_text_manager.input_text
+            self.temp_document.insert_text(start=self.temp_caret.position, text=text)
+            self.temp_caret.position += 1
+            self.update_layout_view()
+
+    def update_layout_view(self):
+        """Updates the caret's position and centers the view on it."""
+        
+        caret_x_pos = self.temp_input_text.get_point_from_position(self.temp_caret.position)[0]
+        
+        # At start: input_index=100
+        #           caret_x_pos is now a positive pixel value (e.g., 800)
+        #           desired_view_x = 800 - (750 / 2) = 425
+        # This is a positive number, so the layout will scroll correctly.
+        desired_view_x = caret_x_pos - (self.width / 2)
+        self.temp_input_text.view_x = desired_view_x
             
     def on_text_motion(self, motion):
         """
