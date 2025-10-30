@@ -4,6 +4,7 @@ import json
 from utils.user_profile import UserProfile
 from ai_trainer.session_stats import SessionStats
 from dataclasses import asdict
+from collections import defaultdict
 
 
 class SaveManager:
@@ -78,3 +79,35 @@ class SaveManager:
             cursor.execute("SELECT * FROM trainer_session_stats")
             result = cursor.fetchall()
         print(result)
+
+    def get_char_accuracies(self) -> defaultdict:
+        query = """
+        SELECT char_confusion_matrix FROM trainer_session_stats
+        """
+        confusion_matrix = defaultdict(lambda: defaultdict(int))
+        with sqlite3.connect(self.file_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(query)
+            for row in cursor.fetchall():
+                for char, counts in json.loads(row["char_confusion_matrix"]).items():
+                    for typed_char, count in counts.items():
+                        confusion_matrix[char][typed_char] += count
+        char_accuracy = defaultdict(float)
+        for char, counts in confusion_matrix.items():
+            char_accuracy[char] = counts[char] / sum(counts.values())
+        return char_accuracy
+    
+    def get_word_mistype_counts(self) -> defaultdict:
+        query = """
+        SELECT word_mistype_counts FROM trainer_session_stats
+        """
+        word_mistype_counts = defaultdict(int)
+        with sqlite3.connect(self.file_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(query)
+            for row in cursor.fetchall():
+                for word, count in json.loads(row["word_mistype_counts"]).items():
+                    word_mistype_counts[word] += count
+        return word_mistype_counts
