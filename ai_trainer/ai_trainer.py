@@ -118,7 +118,7 @@ class AITrainerView(arcade.View):
                     color=self.INCORRECT_TEXT_COLOR
                 )
             )
-            self.session_stats.word_mistype_count[self.words_list[self.word_index]] += 1
+            self.session_stats.word_mistype_counts[self.words_list[self.word_index]] += 1
         if correct_char == " ":
             self.word_index += 1
         self.session_stats.chars_typed_total += 1
