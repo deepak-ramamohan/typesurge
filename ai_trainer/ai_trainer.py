@@ -105,9 +105,11 @@ class AITrainerView(arcade.View):
                 )
             )
         else:
-            if correct_char == " ":
-                self.text_document.delete_text(self.caret.position, self.caret.position + 1)
+            self.text_document.delete_text(self.caret.position, self.caret.position + 1)
+            if input == " ":
                 self.text_document.insert_text(self.caret.position, self.SPACE_CHAR)
+            else:
+                self.text_document.insert_text(self.caret.position, input)
             self.text_document.set_style(
                 self.caret.position,
                 self.caret.position + 1,
@@ -124,9 +126,9 @@ class AITrainerView(arcade.View):
     def capture_backspace(self):
         if self.caret.position > self.padding_size:
             self.caret.position -= 1
-            if self.text_document.text[self.caret.position] == self.SPACE_CHAR:
-                self.text_document.delete_text(self.caret.position, self.caret.position + 1)
-                self.text_document.insert_text(self.caret.position, " ")
+            correct_char = self.padded_text[self.caret.position]
+            self.text_document.delete_text(self.caret.position, self.caret.position + 1)
+            self.text_document.insert_text(self.caret.position, correct_char)
             self.text_document.set_style(
                 start=self.caret.position,
                 end=self.caret.position + 1,
