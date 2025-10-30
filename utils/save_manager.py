@@ -26,8 +26,9 @@ class SaveManager:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             session_start_time TIMESTAMP NOT NULL,
             char_confusion_matrix TEXT,
+            char_times TEXT,
             wpm REAL,
-            words_typed INTEGER,
+            word_mistype_count TEXT,
             chars_typed_correctly INTEGER,
             chars_typed_total INTEGER,
             accuracy REAL,
@@ -43,21 +44,23 @@ class SaveManager:
         INSERT INTO trainer_session_stats (
             session_start_time, 
             char_confusion_matrix,
+            char_times,
             wpm,
-            words_typed,
+            word_mistype_count,
             chars_typed_correctly,
             chars_typed_total,
             accuracy,
             duration_seconds
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         stats_dict = asdict(session_stats)
         data_tuple = (
             stats_dict["session_start_time"],
             json.dumps(stats_dict["char_confusion_matrix"]),
+            json.dumps(stats_dict["char_times"]),
             stats_dict["wpm"],
-            stats_dict["words_typed"],
+            json.dumps(stats_dict["word_mistype_count"]),
             stats_dict["chars_typed_correctly"],
             stats_dict["chars_typed_total"],
             stats_dict["accuracy"],
