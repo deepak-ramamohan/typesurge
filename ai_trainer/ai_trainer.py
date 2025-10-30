@@ -28,15 +28,22 @@ class AITrainerView(arcade.View):
         self.background = SEPIA_BACKGROUND
         self.main_menu_view = main_menu_view
         self.words_count = words_count
-        self.user_profile = global_state.current_user_profile
+        save_manager = SaveManager(global_state.current_user_profile) 
         self.word_manager = WordManager()
-        self.words_list = [
-            self.word_manager.generate_word(
-                min_character_count=self.WORD_CHARACTER_COUNT_MIN,
-                max_character_count=self.WORD_CHARACTER_COUNT_MAX
-            )
-            for _ in range(self.words_count)
-        ]
+        # self.words_list = [
+        #     self.word_manager.generate_word(
+        #         min_character_count=self.WORD_CHARACTER_COUNT_MIN,
+        #         max_character_count=self.WORD_CHARACTER_COUNT_MAX
+        #     )
+        #     for _ in range(self.words_count)
+        # ]
+        self.words_list = self.word_manager.get_weighted_sample(
+            num_words=self.words_count,
+            char_accuracies=save_manager.get_char_accuracies(),
+            word_mistype_counts=save_manager.get_word_mistype_counts(),
+            min_character_count=self.WORD_CHARACTER_COUNT_MIN,
+            max_character_count=self.WORD_CHARACTER_COUNT_MAX
+        )
         self.word_index = 0
         self.input_text = " ".join(self.words_list)
         self.padding_size = 150
@@ -240,7 +247,7 @@ class PauseView(MenuView):
 
     def _return_to_main_menu(self):
         self.save_manager.save_session_stats_to_db(self.session_stats)
-        self.save_manager.load_and_print_db()
+        # self.save_manager.load_and_print_db()
         self.window.show_view(self.game_view.main_menu_view)
 
 
@@ -276,7 +283,7 @@ class GameCompletedView(MenuView):
 
     def _return_to_main_menu(self):
         self.save_manager.save_session_stats_to_db(self.session_stats)
-        self.save_manager.load_and_print_db()
+        # self.save_manager.load_and_print_db()
         self.window.show_view(self.game_view.main_menu_view)
 
 
