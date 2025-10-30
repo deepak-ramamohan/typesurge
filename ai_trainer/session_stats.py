@@ -9,8 +9,9 @@ class SessionStats:
     char_confusion_matrix: defaultdict[str, defaultdict[str, int]] = field(
         default_factory=lambda: defaultdict(lambda: defaultdict(int))
     )
-    wpm: int = 0
-    words_typed: int = 0
+    char_times: defaultdict[str, list] = field(default_factory=lambda: defaultdict(list))
+    wpm: float = 0.0
+    word_mistype_count: defaultdict[str, int] = field(default_factory=lambda: defaultdict(int))
     chars_typed_correctly: int = 0
     chars_typed_total: int = 0
     accuracy: float = 0.0
