@@ -30,14 +30,15 @@ class AITrainerView(arcade.View):
         self.words_count = words_count
         self.user_profile = global_state.current_user_profile
         self.word_manager = WordManager()
-        self.input_text = [
+        self.words_list = [
             self.word_manager.generate_word(
                 min_character_count=self.WORD_CHARACTER_COUNT_MIN,
                 max_character_count=self.WORD_CHARACTER_COUNT_MAX
             )
             for _ in range(self.words_count)
         ]
-        self.input_text = " ".join(self.input_text)
+        self.word_index = 0
+        self.input_text = " ".join(self.words_list)
         self.padding_size = 150
         self.padded_text = " " * self.padding_size + self.input_text + " " * self.padding_size
         self.session_stats = SessionStats()
@@ -117,6 +118,9 @@ class AITrainerView(arcade.View):
                     color=self.INCORRECT_TEXT_COLOR
                 )
             )
+            self.session_stats.word_mistype_count[self.words_list[self.word_index]] += 1
+        if correct_char == " ":
+            self.word_index += 1
         self.session_stats.chars_typed_total += 1
         self.caret.position += 1
         if self.caret.position == self.padding_size + len(self.input_text):
@@ -137,6 +141,8 @@ class AITrainerView(arcade.View):
                 )
             )
             self.center_text_layout()
+            if correct_char == " ":
+                self.word_index -= 1
 
     def center_text_layout(self):
         """
@@ -148,14 +154,13 @@ class AITrainerView(arcade.View):
     def on_update(self, delta_time):
         self.session_stats.duration_seconds += delta_time
         if self.session_stats.duration_seconds >= 2:
-            self.session_stats.wpm = int(
+            self.session_stats.wpm = (
                 self.session_stats.chars_typed_correctly * 12 / self.session_stats.duration_seconds
             )
         if self.session_stats.chars_typed_total > 0:
-            self.session_stats.accuracy = 100.0 * \
-                self.session_stats.chars_typed_correctly / self.session_stats.chars_typed_total
-        self.wpm_text.text = f"WPM: {self.session_stats.wpm}, " + \
-            f"Accuracy: {self.session_stats.accuracy:.2f}%"
+            self.session_stats.accuracy = self.session_stats.chars_typed_correctly / self.session_stats.chars_typed_total
+        self.wpm_text.text = f"WPM: {self.session_stats.wpm:.1f}, " + \
+            f"Accuracy: {100.0 * self.session_stats.accuracy:.2f}%"
         
     def on_key_press(self, symbol, modifiers):
         if symbol == arcade.key.ESCAPE:
@@ -202,8 +207,8 @@ class PauseView(MenuView):
         self.session_stats = session_stats
         self.TITLE_OFFSET_FROM_CENTER = 100
         self.TITLE_FONT_SIZE = 64
-        score_text = f"WPM: {self.session_stats.wpm}," + \
-            f" Accuracy: {self.session_stats.accuracy:.2f}%"
+        score_text = f"WPM: {self.session_stats.wpm:.1f}," + \
+            f" Accuracy: {100.0 * self.session_stats.accuracy:.2f}%"
         super().__init__(
             title_text="Game Paused",
             subtitle_text=score_text
@@ -247,8 +252,8 @@ class GameCompletedView(MenuView):
         self.session_stats = session_stats
         self.TITLE_OFFSET_FROM_CENTER = 100
         self.TITLE_FONT_SIZE = 64
-        score_text = f"WPM: {self.session_stats.wpm}," + \
-            f" Accuracy: {self.session_stats.accuracy:.2f}%"
+        score_text = f"WPM: {self.session_stats.wpm:.1f}," + \
+            f" Accuracy: {100.0 * self.session_stats.accuracy:.2f}%"
         super().__init__(
             title_text="Session Completed!",
             subtitle_text=score_text
