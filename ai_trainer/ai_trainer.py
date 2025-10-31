@@ -3,7 +3,7 @@ from arcade.gui import UIOnClickEvent
 import pyglet
 from pyglet.graphics import Batch
 from pyglet.text import caret
-from utils.word_manager import WordManager
+from utils.word_manager import WordManager, calculate_char_weights, calculate_word_weights
 from utils.resources import SEPIA_BACKGROUND
 from utils.colors import BROWN
 from utils.menu_view import MenuView
@@ -46,10 +46,14 @@ class AITrainerView(arcade.View):
         #     )
         #     for _ in range(self.words_count)
         # ]
+        char_accuracies = save_manager.get_char_accuracies()
+        word_mistype_counts = save_manager.get_word_mistype_counts()
+        char_weights = calculate_char_weights(char_accuracies)
+        word_weights = calculate_word_weights(word_mistype_counts)
         self.words_list = self.word_manager.get_weighted_sample(
             num_words=self.words_count,
-            char_accuracies=save_manager.get_char_accuracies(),
-            word_mistype_counts=save_manager.get_word_mistype_counts(),
+            char_weights=char_weights,
+            word_weights=word_weights,
             min_character_count=self.WORD_CHARACTER_COUNT_MIN,
             max_character_count=self.WORD_CHARACTER_COUNT_MAX
         )
