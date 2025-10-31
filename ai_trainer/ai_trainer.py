@@ -370,7 +370,7 @@ class ModeSelectionView(MenuView):
         """
         self.main_menu_view = main_menu_view
         self.user_profile = global_state.current_user_profile
-        self.TITLE_OFFSET_FROM_CENTER = 100
+        self.TITLE_OFFSET_FROM_CENTER = 150
         self.TITLE_FONT_SIZE = 64
         super().__init__(
             title_text="AI Trainer",
@@ -410,7 +410,7 @@ class ModeSelectionView(MenuView):
             """
             self.return_to_previous_view()
 
-        button_stats = self.create_button("Stats")
+        button_stats = self.create_button("View Stats")
         @button_stats.event("on_click")
         def _(event: "UIOnClickEvent") -> None:
             """
