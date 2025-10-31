@@ -12,6 +12,7 @@ from utils import global_state
 from utils.resources import AI_TRAINER_MUSIC
 from utils.music_manager import MusicManager
 from ai_trainer.session_stats import SessionStats
+from ai_trainer.stats_view import StatsView
 
 
 class AITrainerView(arcade.View):
@@ -369,7 +370,7 @@ class ModeSelectionView(MenuView):
         """
         self.main_menu_view = main_menu_view
         self.user_profile = global_state.current_user_profile
-        self.TITLE_OFFSET_FROM_CENTER = 100
+        self.TITLE_OFFSET_FROM_CENTER = 150
         self.TITLE_FONT_SIZE = 64
         super().__init__(
             title_text="AI Trainer",
@@ -409,12 +410,22 @@ class ModeSelectionView(MenuView):
             """
             self.return_to_previous_view()
 
+        button_stats = self.create_button("View Stats")
+        @button_stats.event("on_click")
+        def _(event: "UIOnClickEvent") -> None:
+            """
+            Show the stats view.
+            """
+            stats_view = StatsView(self)
+            self.window.show_view(stats_view)
+
         self.initialize_buttons(
             [
                 button_25_words,
                 button_50_words,
                 button_100_words,
-                button_back
+                button_stats,
+                button_back,
             ]
         )
     
