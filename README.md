@@ -6,7 +6,7 @@ This repository contains a collection of typing games built with the Python arca
 
 ### Space Shooter
 
-A fast-paced arcade game where you must type words to shoot down enemy ships. The difficulty increases as your score gets higher.
+A fast-paced arcade game where you must type words to shoot down enemy meteors. The difficulty ramps up as your score gets higher.
 
 ### AI Trainer
 
