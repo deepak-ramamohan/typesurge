@@ -8,10 +8,19 @@ from collections import defaultdict
 
 
 class SaveManager:
+    """
+    Manages saving and loading of user data and session stats.
+    """
 
     SAVE_FOLDER = "save/"
 
     def __init__(self, user_profile: UserProfile):
+        """
+        Initializes the SaveManager.
+
+        Args:
+            user_profile: The user profile to manage.
+        """
         self.user_profile = user_profile
         filename = user_profile.name + ".db"
         os.makedirs(self.SAVE_FOLDER, exist_ok=True)
@@ -41,6 +50,12 @@ class SaveManager:
             cursor.execute(create_table_sql)
 
     def save_session_stats_to_db(self, session_stats: SessionStats) -> None:
+        """
+        Saves the session stats to the database.
+
+        Args:
+            session_stats: The session stats to save.
+        """
         insert_query = """
         INSERT INTO trainer_session_stats (
             session_start_time, 
@@ -72,7 +87,10 @@ class SaveManager:
             cursor.execute(insert_query, data_tuple)
             conn.commit()
 
-    def load_and_print_db(self):
+    def load_and_print_db(self) -> None:
+        """
+        Loads and prints the entire database to the console.
+        """
         result = None
         with sqlite3.connect(self.file_path) as conn:
             cursor = conn.cursor()
@@ -81,6 +99,9 @@ class SaveManager:
         print(result)
 
     def get_char_accuracies(self) -> defaultdict:
+        """
+        Gets the character accuracies from the database.
+        """
         query = """
         SELECT char_confusion_matrix FROM trainer_session_stats
         """
@@ -99,6 +120,9 @@ class SaveManager:
         return char_accuracy
     
     def get_word_mistype_counts(self) -> defaultdict:
+        """
+        Gets the word mistype counts from the database.
+        """
         query = """
         SELECT word_mistype_counts FROM trainer_session_stats
         """

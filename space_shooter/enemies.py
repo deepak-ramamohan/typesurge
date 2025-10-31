@@ -37,11 +37,14 @@ class EnemyWord(arcade.Sprite):
 
     def __init__(
         self, 
-        word, 
-        position,
-        target_position,
-        movement_speed_range, 
-    ):
+        word: str,
+        position: tuple[float, float],
+        target_position: tuple[float, float],
+        movement_speed_range: tuple[float, float],
+    ) -> None:
+        """
+        Initializer
+        """
         self.meteor_sprite_texture = random.choice(self.METEOR_SPRITE_OPTIONS)
         x, y = position
         super().__init__(
@@ -80,17 +83,26 @@ class EnemyWord(arcade.Sprite):
             self.text_list.append(text)
         self._update_text_character_positions()
 
-    def update(self, delta_time = 1 / 60):
+    def update(self, delta_time: float = 1 / 60) -> None:
+        """
+        Update the enemy word.
+        """
         super().update(delta_time=delta_time)
         self._update_text_character_positions()
 
-    def _update_text_character_positions(self):
+    def _update_text_character_positions(self) -> None:
+        """
+        Update the positions of the text characters.
+        """
         x, y = self.center_x + self.WORD_OFFSET_PIXELS, self.center_y
         for text in self.text_list:
             text.x, text.y = x, y
             x = text.right
 
-    def match_text(self, other):
+    def match_text(self, other: str) -> str:
+        """
+        Match the input text with the enemy word.
+        """
         for i, c in enumerate(other):
             if i >= len(self.text_characters) or self.text_characters[i] != c:
                 self.reset_color()
@@ -100,34 +112,55 @@ class EnemyWord(arcade.Sprite):
             return "full"
         return "partial"
     
-    def reset_color(self):
+    def reset_color(self) -> None:
+        """
+        Reset the color of the text characters.
+        """
         for text in self.text_list:
             text.color = self.UNMATCHED_COLOR
     
-    def draw(self):
+    def draw(self) -> None:
+        """
+        Draw the enemy word.
+        """
         self.text_batch.draw()
         arcade.draw_sprite(self)
 
 
 class EnemyWordList(arcade.SpriteList):
+    """
+    A list of enemy words.
+    """
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """
+        Initializer
+        """
         super().__init__()
 
-    def draw(self):
+    def draw(self) -> None:
+        """
+        Draw the enemy words.
+        """
         for enemy_word in self:
             arcade.draw_sprite(enemy_word)
             enemy_word.text_batch.draw()
 
 
 class EnemySpawner():
+    """
+    Spawns enemy words.
+    """
 
     ANGLE_RANGE_DEGREES = 45
     OFFSCREEN_SPAWN_OFFSET_PIXELS = 30
     SPAWN_POINTS_COUNT = 9  # Number of distinct spawn points
     SPAWN_COOLDOWN_SECONDS = 5
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """
+        Initializer
+        """
         self.word_manager = WordManager()
         self.spawn_angles = np.linspace(
             -self.ANGLE_RANGE_DEGREES/2, 
@@ -137,7 +170,10 @@ class EnemySpawner():
         self.recently_spawned = {}  # key: point index, value: spawn time
         self.available_indexes = set(range(self.SPAWN_POINTS_COUNT))
 
-    def _get_spawn_angle(self):
+    def _get_spawn_angle(self) -> float:
+        """
+        Get a spawn angle.
+        """
         self._update_available_indexes()
         # Choose from one of the available points (if exists)
         if len(self.available_indexes) > 0:
@@ -150,7 +186,7 @@ class EnemySpawner():
         self.recently_spawned[idx] = GLOBAL_CLOCK.time
         return self.spawn_angles[idx]
 
-    def _update_available_indexes(self):
+    def _update_available_indexes(self) -> None:
         """
         Iterate through the recent indexes and make them available if their cooldown has expired
         """
@@ -159,7 +195,7 @@ class EnemySpawner():
                 self.available_indexes.add(idx)
                 del self.recently_spawned[idx]
         
-    def _get_enemy_spawn_position_at_random(self, player_position, window_width, window_height):
+    def _get_enemy_spawn_position_at_random(self, player_position: tuple[float, float], window_width: int, window_height: int) -> tuple[float, float]:
         """
         Get coordinates for an enemy spawn around the player in an arc. The steps are:
         1. Choose an angle at random, say between -20 degrees and +20 degrees (to the right of the player).
@@ -185,12 +221,15 @@ class EnemySpawner():
     
     def spawn_enemy_word(
         self, 
-        player_position, 
-        window_width, 
-        window_height,
-        character_count_range=[4, 7],
-        movement_speed_range=[0.75, 1.25]
-    ):
+        player_position: tuple[float, float],
+        window_width: int,
+        window_height: int,
+        character_count_range: list[int] = [4, 7],
+        movement_speed_range: list[float] = [0.75, 1.25]
+    ) -> EnemyWord:
+        """
+        Spawn an enemy word.
+        """
         enemy_word = EnemyWord(
             self.word_manager.generate_word(
                 min_character_count=character_count_range[0],

@@ -3,7 +3,7 @@ import arcade
 from PIL import Image, ImageOps, ImageChops
 
 
-def calculate_angle_between_points(point1, point2):
+def calculate_angle_between_points(point1: tuple[float, float], point2: tuple[float, float]) -> float:
     """
     Calculate the angle (in radians, anticlockwise) of the line: (point1 -> point2)
     """

@@ -13,8 +13,14 @@ from utils import global_state
 
 
 class MainMenuView(MenuView):
+    """
+    The main menu view.
+    """
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """
+        Initializer
+        """
         title_text = "Welcome to TypeMania!"
         self.TITLE_OFFSET_FROM_CENTER = 75
         self.SUBTITLE_OFFSET_FROM_TITLE = -10
@@ -26,17 +32,26 @@ class MainMenuView(MenuView):
         )
         space_shooter_button = self.create_button("Space Shooter")
         @space_shooter_button.event("on_click")
-        def _(event):
+        def _(event: "UIOnClickEvent") -> None:
+            """
+            Start the space shooter game.
+            """
             self._start_game()
 
         ai_trainer_button = self.create_button("AI Trainer")
         @ai_trainer_button.event("on_click")
-        def _(event):
+        def _(event: "UIOnClickEvent") -> None:
+            """
+            Start the AI trainer.
+            """
             self._start_ai_trainer()
  
         quit_button = self.create_button("Quit")
         @quit_button.event("on_click")
-        def _(event):
+        def _(event: "UIOnClickEvent") -> None:
+            """
+            Quit the game.
+            """
             self._quit_game()
 
         self.initialize_buttons(
@@ -51,7 +66,10 @@ class MainMenuView(MenuView):
 
         self._initialize_user_profile()
         
-    def _initialize_user_profile(self):
+    def _initialize_user_profile(self) -> None:
+        """
+        Initialize the user profile.
+        """
         self.user_profiles = [
             UserProfile(name="user_1", display_name="User 1"),
             UserProfile(name="user_2", display_name="User 2"),
@@ -87,30 +105,48 @@ class MainMenuView(MenuView):
             color=BROWN
         )
         @user_profile_button.event("on_click")
-        def _(event):
+        def _(event: "UIOnClickEvent") -> None:
+            """
+            Cycle through the user profiles.
+            """
             self.user_index = (self.user_index + 1) % len(self.user_profiles)
             global_state.current_user_profile = self.user_profiles[self.user_index]
             user_profile_text.text = global_state.current_user_profile.display_name
         self.ui.add(user_profile_button)
 
-    def on_show_view(self):
+    def on_show_view(self) -> None:
+        """
+        Handle show view.
+        """
         super().on_show_view()
         if not MusicManager.is_music_playing_same(MAIN_MENU_MUSIC):
             MusicManager.play_music(MAIN_MENU_MUSIC)
 
-    def _start_game(self):
+    def _start_game(self) -> None:
+        """
+        Start the space shooter game.
+        """
         game_view = SpaceShooterGameView(self)
         self.window.show_view(game_view)
 
-    def _start_ai_trainer(self):
+    def _start_ai_trainer(self) -> None:
+        """
+        Start the AI trainer.
+        """
         trainer_view = ModeSelectionView(self, self)
         self.window.show_view(trainer_view)
 
-    def _quit_game(self):
+    def _quit_game(self) -> None:
+        """
+        Quit the game.
+        """
         arcade.exit()
 
 
-def load_fonts():
+def load_fonts() -> None:
+    """
+    Load the fonts.
+    """
     arcade.resources.load_kenney_fonts()
     arcade.load_font("assets/fonts/Ithaca-LVB75.ttf")
     arcade.load_font("assets/fonts/PublicPixel-rv0pA.ttf")
@@ -118,7 +154,10 @@ def load_fonts():
     arcade.load_font("assets/fonts/PixeloidSans-E40en.ttf")
 
 
-def main():
+def main() -> None:
+    """
+    Main function
+    """
     load_fonts()
     window = arcade.Window(1280, 720, "TypeMania")
     main_menu_view = MainMenuView()

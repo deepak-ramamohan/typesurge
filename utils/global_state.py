@@ -7,6 +7,9 @@ current_user_profile: UserProfile | None = None
 
 @dataclass
 class CurrentMusic:
+    """
+    Holds the current music and player.
+    """
     sound: arcade.Sound | None = None
     player: Player | None = None
 

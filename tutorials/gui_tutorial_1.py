@@ -59,8 +59,14 @@ TEX_SCROLL_UP = arcade.load_texture(":resources:gui_basic_assets/scroll/indicato
 
 # Uses multiple inheritance in python
 class ScrollableTextArea(UITextArea, UIAnchorLayout):
+    """
+    A scrollable text area with a scroll down indicator.
+    """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
+        """
+        Initializer
+        """
         super().__init__(**kwargs)
 
         indicator_size = 22
@@ -73,7 +79,10 @@ class ScrollableTextArea(UITextArea, UIAnchorLayout):
         self._down_indicator.visible = False
         self.add(self._down_indicator, anchor_x="right", anchor_y="bottom")
 
-    def on_update(self, dt):
+    def on_update(self, dt: float) -> None:
+        """
+        Update the scroll down indicator.
+        """
         # print(self.layout.view_y, self.layout.content_height, self.layout.height)
         self._down_indicator.visible = (
             abs(self.layout.view_y) < self.layout.content_height - self.layout.height
@@ -81,8 +90,14 @@ class ScrollableTextArea(UITextArea, UIAnchorLayout):
 
 
 class LayoutView(arcade.gui.UIView):
+    """
+    A view that demonstrates various layouts.
+    """
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """
+        Initializer
+        """
         super().__init__()
         self.background_color = arcade.uicolor.BLUE_PETER_RIVER
 
@@ -142,7 +157,10 @@ class LayoutView(arcade.gui.UIView):
         h_box.add(move_left_button)
 
         @move_left_button.event("on_click")
-        def _(event):
+        def _(event: "UIOnClickEvent") -> None:
+            """
+            Move the grid to the top left.
+            """
             self.anchor.remove(self.grid)
             self.anchor.add(self.grid, anchor_x="left", anchor_y="top", align_x=10, align_y=-10)
             move_left_button.disabled = True
@@ -152,14 +170,20 @@ class LayoutView(arcade.gui.UIView):
         h_box.add(move_right_button)
 
         @move_right_button.event("on_click")
-        def _(event):
+        def _(event: "UIOnClickEvent") -> None:
+            """
+            Move the grid to the top right.
+            """
             self.anchor.remove(self.grid)
             self.anchor.add(self.grid, anchor_x="right", anchor_y="top", align_x=-10, align_y=-10)
             move_right_button.disabled = True
             move_left_button.disabled = False
         
 
-def main():
+def main() -> None:
+    """
+    Main function
+    """
     window = arcade.Window(title="GUI Example: Layouts")
     window.show_view(LayoutView())
     window.run()

@@ -15,7 +15,10 @@ class GameView(arcade.Window):
     Main application class.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """
+        Initializer
+        """
 
         # Call the parent class to set up the window
         super().__init__(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
@@ -37,12 +40,18 @@ class GameView(arcade.Window):
         self.level = 1
         self.reset_score = True
 
-    def _create_player_sprite(self):
+    def _create_player_sprite(self) -> None:
+        """
+        Creates the player sprite.
+        """
         self.player_sprite = arcade.Sprite(":resources:images/animated_characters/male_adventurer/maleAdventurer_idle.png")
         self.player_sprite.position = [128, 128]
         self.scene.add_sprite("Player", self.player_sprite)
 
-    def _build_wall(self):
+    def _build_wall(self) -> None:
+        """
+        Creates the wall sprites.
+        """
         # Using spatial hash makes collision detection faster, at the cost of slow movement
         # This is okay for stationary objects such as grass
         self.scene.add_sprite_list("Walls", use_spatial_hash=True)
@@ -55,7 +64,10 @@ class GameView(arcade.Window):
             box.position = coordinate
             self.scene.add_sprite("Walls", box)
 
-    def _add_coins(self):
+    def _add_coins(self) -> None:
+        """
+        Creates the coin sprites.
+        """
         self.scene.add_sprite_list("Coins", use_spatial_hash=True)
         coordinates = [[256, 384], [512, 512], [768, 384]]
         for coordinate in coordinates:
@@ -63,8 +75,10 @@ class GameView(arcade.Window):
             coin.position = coordinate
             self.scene.add_sprite("Coins", coin)
 
-    def setup(self):
-        """Set up the game here. Call this function to restart the game."""
+    def setup(self) -> None:
+        """
+        Set up the game here. Call this function to restart the game.
+        """
         self.scene = arcade.Scene()
         
         # self._build_wall()
@@ -97,8 +111,10 @@ class GameView(arcade.Window):
             self.player_sprite, walls=self.scene["Platforms"], gravity_constant=GRAVITY
         )
 
-    def on_draw(self):
-        """Render the screen."""
+    def on_draw(self) -> None:
+        """
+        Render the screen.
+        """
 
         # The clear method should always be called at the start of on_draw.
         # It clears the whole screen to whatever the background color is
@@ -113,15 +129,20 @@ class GameView(arcade.Window):
         self.gui_camera.use()
         self.score_text.draw()
 
-    def on_update(self, delta_time):
-        """Movement and game logic"""
+    def on_update(self, delta_time: float) -> None:
+        """
+        Movement and game logic
+        """
         self.physics_engine.update()
         self._check_coin_collision()
         self._check_lava()
         self._check_end_of_level()
         self.camera.position = self.player_sprite.position
 
-    def _check_coin_collision(self):
+    def _check_coin_collision(self) -> None:
+        """
+        Checks for coin collision.
+        """
         coins_collected = arcade.check_for_collision_with_list(self.player_sprite, self.scene["Coins"])
         for coin in coins_collected:
             coin.remove_from_sprite_lists()
@@ -129,14 +150,20 @@ class GameView(arcade.Window):
             self.score += 75
             self.score_text.text = f"Score = {self.score}"
 
-    def _check_lava(self):
+    def _check_lava(self) -> None:
+        """
+        Checks for lava collision.
+        """
         if arcade.check_for_collision_with_list(
             self.player_sprite, self.scene["Don't Touch"]
         ):
             arcade.play_sound(self.gameover_sound)
             self.setup()
 
-    def _check_end_of_level(self):
+    def _check_end_of_level(self) -> None:
+        """
+        Checks if the player has reached the end of the level.
+        """
         if self.player_sprite.center_x >= self.end_of_map:
             self.level += 1
             self.reset_score = False
@@ -146,8 +173,10 @@ class GameView(arcade.Window):
                 self.reset_score = True
             self.setup()
 
-    def on_key_press(self, key, modifiers):
-        """Called whenever a key is pressed"""
+    def on_key_press(self, key: int, modifiers: int) -> None:
+        """
+        Called whenever a key is pressed.
+        """
         if key == arcade.key.UP or key == arcade.key.W:
             if self.physics_engine.can_jump():
                 self.player_sprite.change_y = PLAYER_JUMP_SPEED
@@ -164,8 +193,10 @@ class GameView(arcade.Window):
         elif key == arcade.key.ESCAPE:
             self.setup()
 
-    def on_key_release(self, key, modifiers):
-        """Called whenever a key is released."""
+    def on_key_release(self, key: int, modifiers: int) -> None:
+        """
+        Called whenever a key is released.
+        """
 
         if key == arcade.key.LEFT or key == arcade.key.A:
             self.player_sprite.change_x = 0
@@ -173,8 +204,10 @@ class GameView(arcade.Window):
             self.player_sprite.change_x = 0
 
 
-def main():
-    """Main function"""
+def main() -> None:
+    """
+    Main function
+    """
     window = GameView()
     window.setup()
     arcade.run()
