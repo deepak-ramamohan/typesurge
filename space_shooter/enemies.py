@@ -40,7 +40,7 @@ class EnemyWord(arcade.Sprite):
         word: str,
         position: tuple[float, float],
         target_position: tuple[float, float],
-        movement_speed_range: tuple[float, float],
+        movement_speed_range: list[float],
     ) -> None:
         """
         Initializer
@@ -60,10 +60,10 @@ class EnemyWord(arcade.Sprite):
         )
         self.change_angle = random.uniform(-5.0, 5.0)
         theta = calculate_angle_between_points(position, target_position)
-        self.velocity = [
+        self.velocity = (
             self.movement_speed * math.cos(theta), 
             self.movement_speed * math.sin(theta)
-        ]
+        )
         self.WORD_OFFSET_PIXELS = 35
         self.word = word
         self.text_characters = [c for c in word]
@@ -138,7 +138,7 @@ class EnemyWordList(arcade.SpriteList):
         """
         super().__init__()
 
-    def draw(self) -> None:
+    def draw(self) -> None: # type: ignore
         """
         Draw the enemy words.
         """

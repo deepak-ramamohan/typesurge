@@ -3,7 +3,7 @@ import arcade
 from pyglet.media import Player
 from dataclasses import dataclass
 
-current_user_profile: UserProfile | None = None
+current_user_profile: UserProfile
 
 @dataclass
 class CurrentMusic:

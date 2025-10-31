@@ -4,7 +4,7 @@ from ai_trainer.ai_trainer import ModeSelectionView
 from utils.menu_view import MenuView
 from utils.resources import USER_PROFILE_SPRITE
 from utils.colors import BROWN
-from arcade.gui import UIFlatButton, UIImage
+from arcade.gui import UIFlatButton, UIImage, UIOnClickEvent
 from utils.button_styles import transparent_button_style
 from utils.user_profile import UserProfile
 from utils.resources import MAIN_MENU_MUSIC
@@ -32,7 +32,7 @@ class MainMenuView(MenuView):
         )
         space_shooter_button = self.create_button("Space Shooter")
         @space_shooter_button.event("on_click")
-        def _(event: "UIOnClickEvent") -> None:
+        def _(event: UIOnClickEvent) -> None:
             """
             Start the space shooter game.
             """
@@ -40,7 +40,7 @@ class MainMenuView(MenuView):
 
         ai_trainer_button = self.create_button("AI Trainer")
         @ai_trainer_button.event("on_click")
-        def _(event: "UIOnClickEvent") -> None:
+        def _(event: UIOnClickEvent) -> None:
             """
             Start the AI trainer.
             """
@@ -48,7 +48,7 @@ class MainMenuView(MenuView):
  
         quit_button = self.create_button("Quit")
         @quit_button.event("on_click")
-        def _(event: "UIOnClickEvent") -> None:
+        def _(event: UIOnClickEvent) -> None:
             """
             Quit the game.
             """
@@ -105,7 +105,7 @@ class MainMenuView(MenuView):
             color=BROWN
         )
         @user_profile_button.event("on_click")
-        def _(event: "UIOnClickEvent") -> None:
+        def _(event: UIOnClickEvent) -> None:
             """
             Cycle through the user profiles.
             """

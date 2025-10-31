@@ -18,7 +18,8 @@ class MusicManager:
         cls.stop_current_music()
         global_state.current_music.sound = music
         global_state.current_music.player = arcade.play_sound(music, loop=loop)
-        global_state.current_music.player.seek(0.0)
+        if global_state.current_music.player:
+            global_state.current_music.player.seek(0.0)
 
     @classmethod
     def stop_current_music(cls) -> None:

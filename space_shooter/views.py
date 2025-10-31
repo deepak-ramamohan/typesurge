@@ -1,8 +1,9 @@
 import arcade
+from arcade.gui import UIOnClickEvent
 import random
 import math
 from space_shooter.player import Player
-from space_shooter.enemies import EnemySpawner, EnemyWordList
+from space_shooter.enemies import EnemySpawner, EnemyWordList, EnemyWord
 from space_shooter.explosion import Explosion
 from utils.helpers import calculate_angle_between_points, key_mapping
 from utils.resources import SEPIA_BACKGROUND, BULLET_SPRITE, SPACE_SHOOTER_MUSIC
@@ -43,7 +44,7 @@ class SpaceShooterGameView(arcade.View):
             bold=True
         )
         self.input = ""
-        self.explosion_list = None
+        self.explosion_list: arcade.SpriteList
         self.score = 0
         self.score_text = arcade.Text(
             text="",
@@ -181,7 +182,7 @@ class SpaceShooterGameView(arcade.View):
         laser.center_y = self.player.center_y
         laser.left = self.player.right
         theta = calculate_angle_between_points(laser.position, enemy_word.position)
-        laser.velocity = [self.LASER_SPEED * math.cos(theta), self.LASER_SPEED * math.sin(theta)]
+        laser.velocity = (self.LASER_SPEED * math.cos(theta), self.LASER_SPEED * math.sin(theta))
         laser.angle = math.degrees(2 * math.pi - theta) + LASER_ANGLE_OFFSET
         self.laser_list.append(laser)
         arcade.play_sound(self.laser_sound, volume=self.SOUND_VOLUME)

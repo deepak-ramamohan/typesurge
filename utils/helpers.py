@@ -44,7 +44,11 @@ def tint_image(image: Image.Image, color: tuple[int, int, int]) -> Image.Image:
     return final_image
 
 
-def load_image(path: str, invert: bool = True, tint_color: tuple[int, int, int] = None) -> Image.Image:
+def load_image(
+    path: str, 
+    invert: bool = True, 
+    tint_color: tuple[int, int, int] = (255, 255, 255)
+) -> Image.Image:
     image = Image.open(path)
     if invert:
         if image.mode == 'RGBA':
@@ -55,8 +59,9 @@ def load_image(path: str, invert: bool = True, tint_color: tuple[int, int, int] 
             output_image = Image.merge('RGBA', (r2,g2,b2,a))
         else:
             output_image = ImageOps.invert(image)
-    if tint_color is not None:
-        output_image = tint_image(output_image, tint_color)
+    else:
+        output_image = image
+    output_image = tint_image(output_image, tint_color)
     return output_image
 
 

@@ -1,6 +1,8 @@
 import arcade
+from arcade.gui import UIOnClickEvent
 import pyglet
 from pyglet.graphics import Batch
+from pyglet.text import caret
 from utils.word_manager import WordManager
 from utils.resources import SEPIA_BACKGROUND
 from utils.colors import BROWN
@@ -70,7 +72,7 @@ class AITrainerView(arcade.View):
         )
         self.text_layout = pyglet.text.layout.IncrementalTextLayout(
             document=self.text_document,
-            width=self.width - 50,
+            width=int(self.width - 50),
             height=100,
             x=self.width//2,
             y=self.height//2 + 50,
@@ -79,7 +81,7 @@ class AITrainerView(arcade.View):
             multiline=False,
             batch=self.pyglet_batch
         )
-        self.caret = pyglet.text.caret.Caret(
+        self.caret = caret.Caret(
             self.text_layout,
             color=BROWN
         )
@@ -171,7 +173,7 @@ class AITrainerView(arcade.View):
         Updates the horizontal scroll on the layout so that the caret is in the center
         """    
         caret_x_pos = self.text_layout.get_point_from_position(self.caret.position)[0]
-        self.text_layout.view_x = caret_x_pos - (self.window.width / 2)
+        self.text_layout.view_x = int(caret_x_pos - (self.window.width / 2))
 
     def on_update(self, delta_time: float) -> None:
         """
