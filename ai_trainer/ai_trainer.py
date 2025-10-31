@@ -13,6 +13,9 @@ from ai_trainer.session_stats import SessionStats
 
 
 class AITrainerView(arcade.View):
+    """
+    The AI Trainer view.
+    """
 
     UNMATCHED_TEXT_COLOR = BROWN[:3] + (170,)
     CORRECT_TEXT_COLOR = BROWN
@@ -23,7 +26,10 @@ class AITrainerView(arcade.View):
     WORD_CHARACTER_COUNT_MAX = 8
     SPACE_CHAR = '·'
 
-    def __init__(self, main_menu_view, words_count):
+    def __init__(self, main_menu_view: arcade.View, words_count: int) -> None:
+        """
+        Initializer
+        """
         super().__init__()
         self.background = SEPIA_BACKGROUND
         self.main_menu_view = main_menu_view
@@ -92,7 +98,10 @@ class AITrainerView(arcade.View):
         self.typing_sound = arcade.Sound("assets/sounds/eklee-KeyPressMac06.wav")
         MusicManager.play_music(AI_TRAINER_MUSIC) 
     
-    def on_draw(self):
+    def on_draw(self) -> None:
+        """
+        Draw the view.
+        """
         self.clear()
         arcade.draw_texture_rect(
             SEPIA_BACKGROUND,
@@ -100,7 +109,10 @@ class AITrainerView(arcade.View):
         )
         self.pyglet_batch.draw()
 
-    def capture_character_input(self, input):
+    def capture_character_input(self, input: str) -> None:
+        """
+        Capture the character input.
+        """
         correct_char = self.padded_text[self.caret.position]
         self.session_stats.char_confusion_matrix[correct_char][input] += 1
         if input == correct_char:
@@ -134,7 +146,10 @@ class AITrainerView(arcade.View):
             self._complete_game()
         self.center_text_layout()
 
-    def capture_backspace(self):
+    def capture_backspace(self) -> None:
+        """
+        Capture the backspace key.
+        """
         if self.caret.position > self.padding_size:
             self.caret.position -= 1
             correct_char = self.padded_text[self.caret.position]
@@ -151,14 +166,17 @@ class AITrainerView(arcade.View):
             if correct_char == " ":
                 self.word_index -= 1
 
-    def center_text_layout(self):
+    def center_text_layout(self) -> None:
         """
         Updates the horizontal scroll on the layout so that the caret is in the center
         """    
         caret_x_pos = self.text_layout.get_point_from_position(self.caret.position)[0]
-        self.text_layout.view_x = caret_x_pos - (self.width / 2)
+        self.text_layout.view_x = caret_x_pos - (self.window.width / 2)
 
-    def on_update(self, delta_time):
+    def on_update(self, delta_time: float) -> None:
+        """
+        Update the view.
+        """
         self.session_stats.duration_seconds += delta_time
         if self.session_stats.duration_seconds >= 2:
             self.session_stats.wpm = (
@@ -169,21 +187,30 @@ class AITrainerView(arcade.View):
         self.wpm_text.text = f"WPM: {self.session_stats.wpm:.1f}, " + \
             f"Accuracy: {100.0 * self.session_stats.accuracy:.2f}%"
         
-    def on_key_press(self, symbol, modifiers):
+    def on_key_press(self, symbol: int, modifiers: int) -> None:
+        """
+        Handle key presses.
+        """
         if symbol == arcade.key.ESCAPE:
             pause_view = PauseView(self, self.session_stats)
             self.window.show_view(pause_view)
         else:
             self._play_typing_sound()
 
-    def _complete_game(self):
+    def _complete_game(self) -> None:
+        """
+        Complete the game.
+        """
         game_completed_view = GameCompletedView(self, self.session_stats)
         self.window.show_view(game_completed_view)
 
-    def _play_typing_sound(self):
+    def _play_typing_sound(self) -> None:
+        """
+        Play the typing sound.
+        """
         arcade.play_sound(self.typing_sound, volume=0.75)
 
-    def on_text(self, text):
+    def on_text(self, text: str) -> None:
         """
         Captures unicode text input after applying modifiers.
         This works (even though it's not mentioned in arcade's documentation) 
@@ -192,23 +219,35 @@ class AITrainerView(arcade.View):
         if text not in {'\r', '\n', '\r\n'}:
             self.capture_character_input(input=text)
             
-    def on_text_motion(self, motion):
+    def on_text_motion(self, motion: int) -> None:
         """
         Identifying when the backspace key is pressed (or held pressed)
         """
         if motion == arcade.key.MOTION_BACKSPACE:
             self.capture_backspace()
     
-    def on_show_view(self):
+    def on_show_view(self) -> None:
+        """
+        Handle show view.
+        """
         self.window.set_mouse_visible(False)
 
-    def on_hide_view(self):
+    def on_hide_view(self) -> None:
+        """
+        Handle hide view.
+        """
         self.window.set_mouse_visible(True)
 
 
 class PauseView(MenuView):
+    """
+    The pause view.
+    """
 
-    def __init__(self, game_view, session_stats):
+    def __init__(self, game_view: AITrainerView, session_stats: SessionStats) -> None:
+        """
+        Initializer
+        """
         self.game_view = game_view
         self.save_manager = SaveManager(global_state.current_user_profile)
         self.session_stats = session_stats
@@ -223,12 +262,18 @@ class PauseView(MenuView):
 
         resume_button = self.create_button("Resume")
         @resume_button.event("on_click")
-        def _(event):
+        def _(event: "UIOnClickEvent") -> None:
+            """
+            Resume the game.
+            """
             self._resume()
 
         quit_to_main_menu_button = self.create_button("Quit to Main Menu")
         @quit_to_main_menu_button.event("on_click")
-        def _(event):
+        def _(event: "UIOnClickEvent") -> None:
+            """
+            Return to the main menu.
+            """
             self._return_to_main_menu()
 
         self.initialize_buttons(
@@ -238,22 +283,37 @@ class PauseView(MenuView):
             ]
         )
 
-    def on_key_press(self, symbol, modifiers):
+    def on_key_press(self, symbol: int, modifiers: int) -> None:
+        """
+        Handle key presses.
+        """
         if symbol == arcade.key.ESCAPE:
             self._resume()
 
-    def _resume(self):
+    def _resume(self) -> None:
+        """
+        Resume the game.
+        """
         self.window.show_view(self.game_view)
 
-    def _return_to_main_menu(self):
+    def _return_to_main_menu(self) -> None:
+        """
+        Return to the main menu.
+        """
         self.save_manager.save_session_stats_to_db(self.session_stats)
         # self.save_manager.load_and_print_db()
         self.window.show_view(self.game_view.main_menu_view)
 
 
 class GameCompletedView(MenuView):
+    """
+    The game completed view.
+    """
 
-    def __init__(self, game_view, session_stats):
+    def __init__(self, game_view: AITrainerView, session_stats: SessionStats) -> None:
+        """
+        Initializer
+        """
         self.game_view = game_view
         self.save_manager = SaveManager(global_state.current_user_profile)
         self.session_stats = session_stats
@@ -268,7 +328,10 @@ class GameCompletedView(MenuView):
 
         continue_button = self.create_button("Continue")
         @continue_button.event("on_click")
-        def _(event):
+        def _(event: "UIOnClickEvent") -> None:
+            """
+            Return to the main menu.
+            """
             self._return_to_main_menu()
 
         self.initialize_buttons(
@@ -277,19 +340,31 @@ class GameCompletedView(MenuView):
             ]
         )
 
-    def on_key_press(self, symbol, modifiers):
+    def on_key_press(self, symbol: int, modifiers: int) -> None:
+        """
+        Handle key presses.
+        """
         if symbol == arcade.key.ESCAPE:
             self._return_to_main_menu()
 
-    def _return_to_main_menu(self):
+    def _return_to_main_menu(self) -> None:
+        """
+        Return to the main menu.
+        """
         self.save_manager.save_session_stats_to_db(self.session_stats)
         # self.save_manager.load_and_print_db()
         self.window.show_view(self.game_view.main_menu_view)
 
 
 class ModeSelectionView(MenuView):
+    """
+    The mode selection view.
+    """
 
-    def __init__(self, previous_view, main_menu_view):
+    def __init__(self, previous_view: arcade.View, main_menu_view: arcade.View) -> None:
+        """
+        Initializer
+        """
         self.main_menu_view = main_menu_view
         self.user_profile = global_state.current_user_profile
         self.TITLE_OFFSET_FROM_CENTER = 100
@@ -302,22 +377,34 @@ class ModeSelectionView(MenuView):
 
         button_25_words = self.create_button("25 Words")
         @button_25_words.event("on_click")
-        def _(event):
+        def _(event: "UIOnClickEvent") -> None:
+            """
+            Start the game with 25 words.
+            """
             self.start_game(25)
 
         button_50_words = self.create_button("50 Words")
         @button_50_words.event("on_click")
-        def _(event):
+        def _(event: "UIOnClickEvent") -> None:
+            """
+            Start the game with 50 words.
+            """
             self.start_game(50)
 
         button_100_words = self.create_button("100 Words")
         @button_100_words.event("on_click")
-        def _(event):
+        def _(event: "UIOnClickEvent") -> None:
+            """
+            Start the game with 100 words.
+            """
             self.start_game(100)
 
         button_back = self.create_button("Back")
         @button_back.event("on_click")
-        def _(event):
+        def _(event: "UIOnClickEvent") -> None:
+            """
+            Return to the previous view.
+            """
             self.return_to_previous_view()
 
         self.initialize_buttons(
@@ -329,6 +416,9 @@ class ModeSelectionView(MenuView):
             ]
         )
     
-    def start_game(self, words_count):
+    def start_game(self, words_count: int) -> None:
+        """
+        Start the game.
+        """
         ai_trainer_view = AITrainerView(self.main_menu_view, words_count)
         self.window.show_view(ai_trainer_view)

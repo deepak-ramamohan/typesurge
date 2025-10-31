@@ -4,8 +4,14 @@ from utils.resources import SPACESHIP_SPRITE
 
 
 class Player(arcade.Sprite):
+    """
+    The player sprite.
+    """
 
-    def __init__(self, center_x, center_y):
+    def __init__(self, center_x: float, center_y: float) -> None:
+        """
+        Initializer
+        """
         super().__init__(
             SPACESHIP_SPRITE,
             center_x=center_x,
@@ -17,5 +23,8 @@ class Player(arcade.Sprite):
         self.MAX_LIVES = 3
         self.lives_remaining = self.MAX_LIVES
 
-    def reset_lives(self):
+    def reset_lives(self) -> None:
+        """
+        Reset the player's lives.
+        """
         self.lives_remaining = self.MAX_LIVES

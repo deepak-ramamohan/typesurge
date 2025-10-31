@@ -13,9 +13,15 @@ TEX_RED_BUTTON_PRESS = arcade.load_texture(":resources:gui_basic_assets/button/r
 
 
 class GreenView(arcade.View):
+    """
+    A view with a green background.
+    """
 
-    def __init__(self, window = None, background_color = None):
-        super().__init__(window, background_color)
+    def __init__(self, window: arcade.Window | None = None, background_color: tuple[int, int, int] | None = None) -> None:
+        """
+        Initializer
+        """
+        super().__init__(window)
 
         self.ui = UIManager()
         self.background_color = arcade.uicolor.GREEN_EMERALD
@@ -31,24 +37,42 @@ class GreenView(arcade.View):
         )
 
         @button.event
-        def on_click(event):
+        def on_click(event: "UIOnClickEvent") -> None:
+            """
+            Switch to the blue view.
+            """
             self.window.show_view(BlueView())
     
-    def on_show_view(self):
+    def on_show_view(self) -> None:
+        """
+        This is run once when we switch to this view
+        """
         self.ui.enable()
     
-    def on_hide_view(self):
+    def on_hide_view(self) -> None:
+        """
+        This is run once when we switch away from this view
+        """
         self.ui.disable()
 
-    def on_draw(self):
+    def on_draw(self) -> None:
+        """
+        Draw this view
+        """
         self.clear()
 
         self.ui.draw()
 
 
 class BlueView(UIView):
+    """
+    A view with a blue background.
+    """
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """
+        Initializer
+        """
         super().__init__()
         self.background_color = arcade.uicolor.BLUE_PETER_RIVER
 
@@ -64,11 +88,17 @@ class BlueView(UIView):
         )
 
         @button.event
-        def on_click(event):
+        def on_click(event: "UIOnClickEvent") -> None:
+            """
+            Switch to the green view.
+            """
             self.window.show_view(GreenView())
 
 
-def main():
+def main() -> None:
+    """
+    Main function
+    """
     window = arcade.Window(title="GUI Example: Basic Setup")
     window.show_view(GreenView())
     arcade.run()

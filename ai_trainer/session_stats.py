@@ -5,6 +5,9 @@ from datetime import datetime
 
 @dataclass
 class SessionStats:
+    """
+    Statistics for a single AI trainer session.
+    """
     session_start_time: datetime = field(default_factory=datetime.now)
     char_confusion_matrix: defaultdict[str, defaultdict[str, int]] = field(
         default_factory=lambda: defaultdict(lambda: defaultdict(int))

@@ -12,6 +12,9 @@ from utils.music_manager import MusicManager
 
 
 class SpaceShooterGameView(arcade.View):
+    """
+    The main game view.
+    """
 
     BACKGROUND_COLOR = arcade.color.CHARCOAL
     ENEMY_COUNT_RANGE = [2, 5]
@@ -21,12 +24,15 @@ class SpaceShooterGameView(arcade.View):
     SOUND_VOLUME = 1.0
     FONT_NAME = "Pixelzone"
     
-    def __init__(self, main_menu_view):
+    def __init__(self, main_menu_view: arcade.View) -> None:
+        """
+        Initializer
+        """
         super().__init__(background_color=self.BACKGROUND_COLOR)
         self.window.set_mouse_visible(False)
         self.main_menu_view = main_menu_view
         self.enemy_spawner = EnemySpawner()
-        self.player = Player(center_x=75, center_y=self.height//2)
+        self.player = Player(center_x=75, center_y=self.window.height//2)
         self.player_lives_text = arcade.Text(
             text="", 
             x=10, 
@@ -58,7 +64,10 @@ class SpaceShooterGameView(arcade.View):
         MusicManager.play_music(SPACE_SHOOTER_MUSIC)
         self.setup()
 
-    def setup(self):
+    def setup(self) -> None:
+        """
+        Set up the game.
+        """
         self.input = ""
         self.player.reset_lives()
         self._update_player_lives_text()
@@ -69,7 +78,10 @@ class SpaceShooterGameView(arcade.View):
         self.enemy_word_list = EnemyWordList()
         self._spawn_enemies()
 
-    def on_draw(self):
+    def on_draw(self) -> None:
+        """
+        Draw the game.
+        """
         self.clear()
         arcade.draw_texture_rect(
             SEPIA_BACKGROUND,
@@ -82,7 +94,7 @@ class SpaceShooterGameView(arcade.View):
         self.score_text.draw()
         self.player_lives_text.draw()
 
-    def _spawn_enemies(self):
+    def _spawn_enemies(self) -> None:
         """
         Keep spawning enemies to ensure that the count is between ENEMY_COUNT_MIN and ENEMY_COUNT_MAX
         """
@@ -94,20 +106,26 @@ class SpaceShooterGameView(arcade.View):
         while current_enemy_count < count_target:
             enemy_word = self.enemy_spawner.spawn_enemy_word(
                 player_position=self.player.position,
-                window_width=self.width,
-                window_height=self.height,
+                window_width=self.window.width,
+                window_height=self.window.height,
                 character_count_range=self.ENEMY_WORD_CHARACTER_COUNT_RANGE,
                 movement_speed_range=self.ENEMY_MOVEMENT_SPEED_RANGE
             )
             self.enemy_word_list.append(enemy_word)
             current_enemy_count += 1
 
-    def _reset_difficulty(self):
+    def _reset_difficulty(self) -> None:
+        """
+        Reset the difficulty.
+        """
         self.ENEMY_COUNT_RANGE = [2, 5]
         self.ENEMY_WORD_CHARACTER_COUNT_RANGE = [4, 7]
         self.ENEMY_MOVEMENT_SPEED_RANGE = [0.75, 1.25]
 
-    def _update_difficulty(self):
+    def _update_difficulty(self) -> None:
+        """
+        Update the difficulty based on the score.
+        """
         if self.score < 500:
             pass
         elif self.score < 1000:
@@ -152,7 +170,10 @@ class SpaceShooterGameView(arcade.View):
             self.ENEMY_WORD_CHARACTER_COUNT_RANGE[1] = 13
         
 
-    def _fire_laser_at(self, enemy_word):
+    def _fire_laser_at(self, enemy_word: "EnemyWord") -> None:
+        """
+        Fire a laser at the given enemy word.
+        """
         # laser = arcade.Sprite(":resources:/images/space_shooter/laserRed01.png")
         laser = arcade.Sprite(BULLET_SPRITE, scale=0.2)
         laser.color = BROWN
@@ -166,7 +187,10 @@ class SpaceShooterGameView(arcade.View):
         arcade.play_sound(self.laser_sound, volume=self.SOUND_VOLUME)
         enemy_word.reset_color()
 
-    def _load_explosion_texture_list(self):
+    def _load_explosion_texture_list(self) -> None:
+        """
+        Load the explosion texture list.
+        """
         spritesheet = arcade.load_spritesheet(":resources:images/spritesheets/explosion.png")
         self.explosion_texture_list = spritesheet.get_texture_grid(
             size=(256, 256),
@@ -175,6 +199,9 @@ class SpaceShooterGameView(arcade.View):
         )
 
     def _create_explosions_at_sprites(self, sprites_list: list[arcade.Sprite]) -> None:
+        """
+        Create explosions at the given sprites.
+        """
         for sprite in sprites_list:
             arcade.play_sound(self.explosion_sound, volume=self.SOUND_VOLUME)
             explosion = Explosion(self.explosion_texture_list)
@@ -182,15 +209,21 @@ class SpaceShooterGameView(arcade.View):
             self.explosion_list.append(explosion)
             sprite.remove_from_sprite_lists()
 
-    def _add_scores_from_words(self, enemy_words):
+    def _add_scores_from_words(self, enemy_words: list["EnemyWord"]) -> None:
+        """
+        Add scores from the given enemy words.
+        """
         for enemy_word in enemy_words:
             self.score += 20 * len(enemy_word.word)
         self._update_score_text()
 
-    def _check_laser_collisions(self, delta_time):
+    def _check_laser_collisions(self, delta_time: float) -> None:
+        """
+        Check for laser collisions.
+        """
         self.laser_list.update()
         for laser in self.laser_list:
-            if laser.left > self.width:
+            if laser.left > self.window.width:
                 laser.remove_from_sprite_lists()
             collisions = arcade.check_for_collision_with_list(laser, self.enemy_word_list)
             if collisions:
@@ -200,7 +233,10 @@ class SpaceShooterGameView(arcade.View):
                 self._spawn_enemies()
                 self._update_difficulty()
 
-    def _check_player_collision(self):
+    def _check_player_collision(self) -> None:
+        """
+        Check for player collision.
+        """
         collisions = arcade.check_for_collision_with_list(self.player, self.enemy_word_list)
         if collisions:
             self._create_explosions_at_sprites(collisions)
@@ -211,7 +247,10 @@ class SpaceShooterGameView(arcade.View):
                 game_over_view = GameOverView(self.score, self.main_menu_view)
                 self.window.show_view(game_over_view)
 
-    def _check_word_matches(self):
+    def _check_word_matches(self) -> None:
+        """
+        Check for word matches.
+        """
         mismatch_count = 0
         full_match_count = 0
         for enemy_word in self.enemy_word_list:
@@ -225,36 +264,60 @@ class SpaceShooterGameView(arcade.View):
         if mismatch_count == len(self.enemy_word_list) or full_match_count > 0:
             self.input = ""
 
-    def on_update(self, delta_time):
+    def on_update(self, delta_time: float) -> None:
+        """
+        Update the game.
+        """
         self._check_player_collision()
         self._check_laser_collisions(delta_time=delta_time)
         self.explosion_list.update(delta_time=delta_time)
         self.enemy_word_list.update(delta_time=delta_time)
         self._check_word_matches()
 
-    def _update_score_text(self):
+    def _update_score_text(self) -> None:
+        """
+        Update the score text.
+        """
         self.score_text.text = f"Score: {self.score}"
 
-    def _update_player_lives_text(self):
+    def _update_player_lives_text(self) -> None:
+        """
+        Update the player lives text.
+        """
         self.player_lives_text.text = f"Lives: {self.player.lives_remaining}/{self.player.MAX_LIVES}"
             
-    def on_key_press(self, symbol, modifiers):
+    def on_key_press(self, symbol: int, modifiers: int) -> None:
+        """
+        Handle key presses.
+        """
         if symbol == arcade.key.ESCAPE:
             pause_view = PauseView(self)
             self.window.show_view(pause_view)
         key_pressed = key_mapping.get(symbol, "")
         self.input = self.input + key_pressed
 
-    def on_show_view(self):
+    def on_show_view(self) -> None:
+        """
+        Handle show view.
+        """
         self.window.set_mouse_visible(False)
 
-    def on_hide_view(self):
+    def on_hide_view(self) -> None:
+        """
+        Handle hide view.
+        """
         self.window.set_mouse_visible(True)
 
 
 class PauseView(MenuView):
+    """
+    The pause view.
+    """
 
-    def __init__(self, game_view):
+    def __init__(self, game_view: SpaceShooterGameView) -> None:
+        """
+        Initializer
+        """
         self.game_view = game_view
         title_text = "Game Paused"
         subtitle_text = f"Your Score: {self.game_view.score}"
@@ -266,12 +329,18 @@ class PauseView(MenuView):
 
         resume_button = self.create_button("Resume")
         @resume_button.event("on_click")
-        def _(event):
+        def _(event: "UIOnClickEvent") -> None:
+            """
+            Resume the game.
+            """
             self._resume()
 
         quit_to_main_menu_button = self.create_button("Quit to Main Menu")
         @quit_to_main_menu_button.event("on_click")
-        def _(event):
+        def _(event: "UIOnClickEvent") -> None:
+            """
+            Return to the main menu.
+            """
             self._return_to_main_menu()
 
         self.initialize_buttons(
@@ -281,20 +350,35 @@ class PauseView(MenuView):
             ]
         )
 
-    def on_key_press(self, symbol, modifiers):
+    def on_key_press(self, symbol: int, modifiers: int) -> None:
+        """
+        Handle key presses.
+        """
         if symbol == arcade.key.ESCAPE:
             self._resume()
 
-    def _resume(self):
+    def _resume(self) -> None:
+        """
+        Resume the game.
+        """
         self.window.show_view(self.game_view)
 
-    def _return_to_main_menu(self):
+    def _return_to_main_menu(self) -> None:
+        """
+        Return to the main menu.
+        """
         self.window.show_view(self.game_view.main_menu_view)
 
 
 class GameOverView(MenuView):
+    """
+    The game over view.
+    """
 
-    def __init__(self, score, main_menu_view):
+    def __init__(self, score: int, main_menu_view: arcade.View) -> None:
+        """
+        Initializer
+        """
         self.score = score
         self.main_menu_view = main_menu_view
         score_text = f"Your Score: {self.score}"
@@ -305,7 +389,10 @@ class GameOverView(MenuView):
 
         continue_button = self.create_button("Continue")
         @continue_button.event("on_click")
-        def _(event):
+        def _(event: "UIOnClickEvent") -> None:
+            """
+            Continue to the main menu.
+            """
             self._continue_to_main_menu()
 
         self.initialize_buttons(
@@ -314,5 +401,8 @@ class GameOverView(MenuView):
             ]
         )
 
-    def _continue_to_main_menu(self):
+    def _continue_to_main_menu(self) -> None:
+        """
+        Continue to the main menu.
+        """
         self.window.show_view(self.main_menu_view)
