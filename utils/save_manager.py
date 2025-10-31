@@ -135,3 +135,29 @@ class SaveManager:
                 for word, count in json.loads(row["word_mistype_counts"]).items():
                     word_mistype_counts[word] += count
         return word_mistype_counts
+
+    def get_all_session_stats(self) -> list[SessionStats]:
+        """
+        Gets all session stats from the database.
+        """
+        query = "SELECT * FROM trainer_session_stats ORDER BY session_start_time"
+        session_stats_list = []
+        with sqlite3.connect(self.file_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(query)
+            for row in cursor.fetchall():
+                session_stats_list.append(
+                    SessionStats(
+                        session_start_time=row["session_start_time"],
+                        char_confusion_matrix=json.loads(row["char_confusion_matrix"]),
+                        char_times=json.loads(row["char_times"]),
+                        wpm=row["wpm"],
+                        word_mistype_counts=json.loads(row["word_mistype_counts"]),
+                        chars_typed_correctly=row["chars_typed_correctly"],
+                        chars_typed_total=row["chars_typed_total"],
+                        accuracy=row["accuracy"],
+                        duration_seconds=row["duration_seconds"],
+                    )
+                )
+        return session_stats_list
