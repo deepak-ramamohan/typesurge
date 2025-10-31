@@ -3,6 +3,26 @@ import math
 from collections import defaultdict
 
 
+def calculate_char_weights(char_accuracies, default_accuracy=1.0):
+    """
+    Calculates weights for each character based on accuracy.
+    """
+    char_weights = defaultdict(lambda: math.log(1 + 10 * (1 - default_accuracy) * 100))
+    for char, accuracy in char_accuracies.items():
+        char_weights[char] = math.log(1 + 10 * (1 - accuracy) * 100)
+    return char_weights
+
+
+def calculate_word_weights(word_mistype_counts, default_mistype_count=0):
+    """
+    Calculates weights for each word based on mistype counts.
+    """
+    word_weights = defaultdict(lambda: math.log(1 + 10 * min(default_mistype_count, 50)))
+    for word, mistype_count in word_mistype_counts.items():
+        word_weights[word] = math.log(1 + 10 * min(mistype_count, 50))
+    return word_weights
+
+
 class WordManager:
     """Class for loading and managing words"""
 
@@ -33,33 +53,28 @@ class WordManager:
         for word in self.word_list:
             self.words_by_length[len(word)].append(word)
 
-    def _calculate_word_weights(self, word_list, char_accuracies, word_mistype_counts, weight_base_multiplier=1.0):
+    def _calculate_hybrid_word_weights(self, word_list, char_weights, word_weights, weight_base_multiplier=1.0):
         """
-        Calculates a weight for each word in the provided list based on user stats.
+        Calculates a hybrid weight for each word based on character and word weights.
         """
         weighted_word_list = []
         for word in word_list:
-            # Calculate character_score for the word
-            character_score = 0
-            for char in word:
-                accuracy = char_accuracies.get(char, 1.0) # Default to 1.0 accuracy if char not in stats
-                char_score = math.log(1 + 10 * (1 - accuracy) * 100)
-                character_score += char_score
+            # Calculate character_score for the word by summing the weights of its characters.
+            character_score = sum(char_weights[char] for char in word)
 
-            # Calculate word_score for the word
-            mistype_count = word_mistype_counts.get(word, 0)
-            word_score = math.log(1 + 10 * min(mistype_count, 50))
+            # Get the pre-calculated word_score for the word.
+            word_score = word_weights[word]
 
             # Calculate final hybrid weight
             final_weight = (self.WEIGHT_CHAR_SCORE * character_score) + \
                            (self.WEIGHT_WORD_SCORE * word_score) + \
                            self.WEIGHT_BASE * weight_base_multiplier
-            
+
             weighted_word_list.append((word, final_weight))
-        
+
         return weighted_word_list
 
-    def get_weighted_sample(self, num_words, char_accuracies, word_mistype_counts, min_character_count=1, max_character_count=99):
+    def get_weighted_sample(self, num_words, char_weights, word_weights, min_character_count=1, max_character_count=99):
         """
         Generates a list of words using a weighted sampling algorithm.
 
@@ -68,8 +83,8 @@ class WordManager:
 
         Args:
             num_words (int): The number of words to sample.
-            char_accuracies (dict): A dictionary mapping characters to their accuracy.
-            word_mistype_counts (dict): A dictionary mapping words to their mistype count.
+            char_weights (defaultdict): A dictionary mapping characters to their weights.
+            word_weights (defaultdict): A dictionary mapping words to their weights.
             min_character_count (int): The minimum length of words to include.
             max_character_count (int): The maximum length of words to include.
 
@@ -85,7 +100,7 @@ class WordManager:
             return []
 
         # Phase 2: Calculate weights for the filtered list of words
-        weighted_words = self._calculate_word_weights(filtered_word_list, char_accuracies, word_mistype_counts)
+        weighted_words = self._calculate_hybrid_word_weights(filtered_word_list, char_weights, word_weights)
 
         # Phase 3: Implement the single-pass sorting method
         scored_words = []
