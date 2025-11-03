@@ -1,6 +1,7 @@
 import arcade
 from arcade.gui import UIOnClickEvent
 import pyglet
+import time
 from pyglet.graphics import Batch
 from pyglet.text import caret
 from utils.word_manager import WordManager, calculate_char_weights, calculate_word_weights
@@ -104,6 +105,8 @@ class AITrainerView(arcade.View):
         )
         self.typing_sound = arcade.Sound("assets/sounds/eklee-KeyPressMac06.wav")
         MusicManager.play_music(AI_TRAINER_MUSIC) 
+        self.last_key_press_time = None
+        self.pause_start_time = None
     
     def on_draw(self) -> None:
         """
@@ -199,6 +202,7 @@ class AITrainerView(arcade.View):
         Handle key presses.
         """
         if symbol == arcade.key.ESCAPE:
+            self.pause_start_time = time.time()
             pause_view = PauseView(self, self.session_stats)
             self.window.show_view(pause_view)
         else:
@@ -224,6 +228,11 @@ class AITrainerView(arcade.View):
         because arcade probably inherits pyglet.window
         """
         if text not in {'\r', '\n', '\r\n'}:
+            current_time = time.time()
+            if self.last_key_press_time is not None:
+                transition_time = current_time - self.last_key_press_time
+                self.session_stats.char_times[text].append(transition_time)
+            self.last_key_press_time = current_time
             self.capture_character_input(input=text)
             
     def on_text_motion(self, motion: int) -> None:
@@ -238,6 +247,11 @@ class AITrainerView(arcade.View):
         Handle show view.
         """
         self.window.set_mouse_visible(False)
+        if self.pause_start_time is not None:
+            pause_duration = time.time() - self.pause_start_time
+            if self.last_key_press_time is not None:
+                self.last_key_press_time += pause_duration
+            self.pause_start_time = None
 
     def on_hide_view(self) -> None:
         """
