@@ -98,7 +98,7 @@ class SaveManager:
             result = cursor.fetchall()
         print(result)
 
-    def get_char_accuracies(self) -> defaultdict:
+    def get_char_accuracies(self) -> defaultdict[str, float]:
         """
         Gets the character accuracies from the database.
         """
@@ -119,7 +119,7 @@ class SaveManager:
             char_accuracy[char] = counts[char] / sum(counts.values())
         return char_accuracy
     
-    def get_word_mistype_counts(self) -> defaultdict:
+    def get_word_mistype_counts(self) -> defaultdict[str, int]:
         """
         Gets the word mistype counts from the database.
         """
