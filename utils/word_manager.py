@@ -3,13 +3,21 @@ import math
 from collections import defaultdict
 
 
-def calculate_char_weights(char_accuracies, default_accuracy=1.0):
+def calculate_char_weights(char_accuracies, weight_decay_exponent=1.5):
     """
     Calculates weights for each character based on accuracy.
     """
-    char_weights = defaultdict(lambda: math.log(1 + 10 * (1 - default_accuracy) * 100))
-    for char, accuracy in char_accuracies.items():
-        char_weights[char] = math.log(1 + 10 * (1 - accuracy) * 100)
+    sorted_accuracies = sorted(char_accuracies.items(), key=lambda x: x[1], reverse=True)
+    weight = 100.0
+    decay_limit = 5
+    decay_count = 0
+    char_weights = defaultdict(lambda: weight / weight_decay_exponent**decay_limit) # Default weight
+    for char, _ in sorted_accuracies:
+        char_weights[char] = weight
+        if decay_count < decay_limit:
+            weight /= weight_decay_exponent
+            decay_count += 1
+    print(char_weights)
     return char_weights
 
 
@@ -30,11 +38,11 @@ class WordManager:
     # These can be tuned to change the behavior of the word sampling.
 
     # Controls the influence of the word's general difficulty based on its characters.
-    WEIGHT_CHAR_SCORE = 0.5
+    WEIGHT_CHAR_SCORE = 1.0
     # Controls how much influence a word's specific mistype history has.
-    WEIGHT_WORD_SCORE = 1.0
+    WEIGHT_WORD_SCORE = 3.0
     # A base weight for all words to ensure new/easy words still have a chance to appear.
-    WEIGHT_BASE = 0.01
+    WEIGHT_BASE = 0.0
 
     def __init__(self, file_path="words_v1.txt"):
         self._load_words(file_path)
@@ -105,8 +113,9 @@ class WordManager:
         # Phase 3: Implement the single-pass sorting method
         scored_words = []
         for word, weight in weighted_words:
-            random_val = random.random()
-            score = random_val ** (1 / weight)
+            # random_val = random.random()
+            # score = random_val ** (1 / weight)
+            score = weight
             scored_words.append((word, score))
         
         # Sort by the calculated score in descending order
@@ -125,4 +134,3 @@ class WordManager:
         character_count = random.randint(min_character_count, max_character_count)
         word = random.choice(self.words_by_length[character_count])
         return word
-      
