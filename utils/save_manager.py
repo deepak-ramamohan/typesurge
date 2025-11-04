@@ -87,16 +87,16 @@ class SaveManager:
             cursor.execute(insert_query, data_tuple)
             conn.commit()
 
-    def load_and_print_db(self) -> None:
+    def fetch_all_session_stats(self) -> list:
         """
         Loads and prints the entire database to the console.
         """
-        result = None
+        result = []
         with sqlite3.connect(self.file_path) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM trainer_session_stats")
             result = cursor.fetchall()
-        print(result)
+        return result
 
     def get_char_accuracies(self) -> defaultdict[str, float]:
         """
@@ -136,11 +136,11 @@ class SaveManager:
                     word_mistype_counts[word] += count
         return word_mistype_counts
 
-    def get_all_session_stats(self) -> list[SessionStats]:
+    def get_all_session_stats(self, limit=20) -> list[SessionStats]:
         """
         Gets all session stats from the database.
         """
-        query = "SELECT * FROM trainer_session_stats ORDER BY session_start_time"
+        query = f"SELECT * FROM trainer_session_stats ORDER BY session_start_time DESC limit {limit}"
         session_stats_list = []
         with sqlite3.connect(self.file_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -160,4 +160,5 @@ class SaveManager:
                         duration_seconds=row["duration_seconds"],
                     )
                 )
+        session_stats_list.reverse()
         return session_stats_list
