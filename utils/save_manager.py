@@ -2,7 +2,7 @@ import sqlite3
 import os
 import json
 from utils.user_profile import UserProfile
-from ai_trainer.session_stats import SessionStats
+from ai_trainer.session_stats import SessionStats, SessionStatsList
 from dataclasses import asdict
 from collections import defaultdict
 
@@ -136,12 +136,12 @@ class SaveManager:
                     word_mistype_counts[word] += count
         return word_mistype_counts
 
-    def get_all_session_stats(self, limit=20) -> list[SessionStats]:
+    def get_all_session_stats(self, limit=20) -> SessionStatsList:
         """
         Gets all session stats from the database.
         """
         query = f"SELECT * FROM trainer_session_stats ORDER BY session_start_time DESC limit {limit}"
-        session_stats_list = []
+        session_stats_list = SessionStatsList()
         with sqlite3.connect(self.file_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
