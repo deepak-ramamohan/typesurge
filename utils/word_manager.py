@@ -1,15 +1,14 @@
 import random
-import math
 from collections import defaultdict
 
 
-def calculate_char_weights(char_accuracies, weight_decay_exponent=1.5):
+def calculate_char_weights(char_accuracies, weight_decay_exponent=1.25):
     """
     Calculates weights for each character based on accuracy.
     """
-    sorted_accuracies = sorted(char_accuracies.items(), key=lambda x: x[1], reverse=True)
+    sorted_accuracies = sorted(char_accuracies.items(), key=lambda x: x[1])
     weight = 100.0
-    decay_limit = 5
+    decay_limit = 6
     decay_count = 0
     char_weights = defaultdict(lambda: weight / weight_decay_exponent**decay_limit) # Default weight
     for char, _ in sorted_accuracies:
@@ -21,13 +20,21 @@ def calculate_char_weights(char_accuracies, weight_decay_exponent=1.5):
     return char_weights
 
 
-def calculate_word_weights(word_mistype_counts, default_mistype_count=0):
+def calculate_word_weights(word_mistype_counts, weight_decay_exponent=1.1):
     """
     Calculates weights for each word based on mistype counts.
     """
-    word_weights = defaultdict(lambda: math.log(1 + 10 * min(default_mistype_count, 50)))
-    for word, mistype_count in word_mistype_counts.items():
-        word_weights[word] = math.log(1 + 10 * min(mistype_count, 50))
+    sorted_mistype_counts = sorted(word_mistype_counts.items(), key=lambda x: x[1], reverse=True)
+    weight = 100.0
+    decay_limit = 10
+    decay_count = 0
+    word_weights = defaultdict(lambda: weight / weight_decay_exponent**decay_limit) # Default weight
+    for word, _ in sorted_mistype_counts:
+        word_weights[word] = weight
+        if decay_count < decay_limit:
+            weight /= weight_decay_exponent
+            decay_count += 1
+    print(word_weights)
     return word_weights
 
 
@@ -40,7 +47,7 @@ class WordManager:
     # Controls the influence of the word's general difficulty based on its characters.
     WEIGHT_CHAR_SCORE = 1.0
     # Controls how much influence a word's specific mistype history has.
-    WEIGHT_WORD_SCORE = 3.0
+    WEIGHT_WORD_SCORE = 2.0
     # A base weight for all words to ensure new/easy words still have a chance to appear.
     WEIGHT_BASE = 0.0
 
