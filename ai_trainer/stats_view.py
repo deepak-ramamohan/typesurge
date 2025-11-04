@@ -53,7 +53,7 @@ class StatsView(MenuView):
         """
         wpm_data = [stat.wpm for stat in self.session_stats]
         accuracy_data = [stat.accuracy * 100 for stat in self.session_stats]
-        sessions = [i+1 for i in range(len(self.session_stats))]
+        sessions = [str(i+1) for i in range(len(self.session_stats))]
 
         # Add Pixelzone font
         font_path = 'assets/fonts/Pixelzone-0v6y4.ttf'
