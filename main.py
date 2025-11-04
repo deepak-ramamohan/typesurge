@@ -22,10 +22,6 @@ class MainMenuView(MenuView):
         Initializer
         """
         title_text = "Welcome to TypeMania!"
-        self.TITLE_OFFSET_FROM_CENTER = 75
-        self.SUBTITLE_OFFSET_FROM_TITLE = -10
-        self.TITLE_FONT_SIZE = 78
-        self.BUTTON_OFFSET_FROM_SUBTITLE = -50
         super().__init__(
             title_text=title_text,
             subtitle_text=""
@@ -93,17 +89,13 @@ class MainMenuView(MenuView):
                 height=BUTTON_SIZE - 3
             )
         )
-        user_profile_text = arcade.Text(
-            text=self.user_profiles[self.user_index].display_name, 
-            x=user_profile_button.right + 10,
-            y=user_profile_button.center_y,
-            anchor_x="left",
-            anchor_y="center",
+        user_profile_label = arcade.gui.UILabel(
+            text=self.user_profiles[self.user_index].display_name,
             font_name=self.FONT_NAME,
             font_size=32,
-            batch=self.text_batch,
-            color=BROWN
+            text_color=BROWN
         )
+
         @user_profile_button.event("on_click")
         def _(event: UIOnClickEvent) -> None:
             """
@@ -111,8 +103,13 @@ class MainMenuView(MenuView):
             """
             self.user_index = (self.user_index + 1) % len(self.user_profiles)
             global_state.current_user_profile = self.user_profiles[self.user_index]
-            user_profile_text.text = global_state.current_user_profile.display_name
-        self.ui.add(user_profile_button)
+            user_profile_label.text = global_state.current_user_profile.display_name
+
+        profile_box = arcade.gui.UIBoxLayout(vertical=False, space_between=10)
+        profile_box.add(user_profile_button)
+        profile_box.add(user_profile_label)
+
+        self.anchor.add(profile_box, anchor_x="left", anchor_y="bottom", align_x=15, align_y=10)
 
     def on_show_view(self) -> None:
         """
