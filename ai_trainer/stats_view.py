@@ -20,9 +20,6 @@ class StatsView(MenuView):
         """
         Initializer
         """
-        self.TITLE_OFFSET_FROM_CENTER = 250
-        self.TITLE_FONT_SIZE = 64
-        self.BUTTON_OFFSET_FROM_SUBTITLE = -450
         super().__init__(
             title_text="Session Stats",
             subtitle_text="",
@@ -33,7 +30,7 @@ class StatsView(MenuView):
         self.plot_texture = None
 
         if not self.session_stats:
-            self.subtitle_text.text = "No stats available yet. Play a session to see your progress!"
+            self.subtitle_label.text = "No stats available yet. Play a session to see your progress!"
         else:
             self._generate_plot()
 

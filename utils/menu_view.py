@@ -2,27 +2,26 @@ import arcade
 from arcade.gui import (
     UIManager,
     UIAnchorLayout,
-    UIBoxLayout, 
-    UIFlatButton
+    UIBoxLayout,
+    UILabel,
+    UISpace
 )
-from pyglet.graphics import Batch
 from utils.colors import BROWN
 from utils.button_styles import sepia_button_style
 from utils.resources import SEPIA_BACKGROUND
+from utils.ui_tooltip_button import UITooltipButton
 
 
 class MenuView(arcade.View):
     """
-    Common class for creating consistent menu screens in the game
+    Common class for creating consistent menu screens in the game.
     """
 
     FONT_NAME = "Pixelzone"
     TITLE_FONT_SIZE = 72
-    TITLE_OFFSET_FROM_CENTER = 50
     SUBTITLE_FONT_SIZE = 48
-    SUBTITLE_OFFSET_FROM_TITLE = -70
     BUTTON_WIDTH = 300
-    BUTTON_OFFSET_FROM_SUBTITLE = -30
+    PADDING = 20
 
     def __init__(
         self,
@@ -31,53 +30,92 @@ class MenuView(arcade.View):
         previous_view: arcade.View | None = None
     ) -> None:
         super().__init__()
-        self.text_batch = Batch()
-        self.title_text = arcade.Text(
-            title_text,
-            x = self.window.width // 2,
-            y = self.window.height // 2 + self.TITLE_OFFSET_FROM_CENTER,
-            anchor_x="center",
+        self.previous_view = previous_view
+
+        # UI Manager and main layout
+        self.ui = UIManager()
+        self.root_box_layout = self.ui.add(UIBoxLayout(vertical=True, size_hint=(1, 1), space_between=self.PADDING))
+        # Create title and subtitle labels
+        self.title_label = UILabel(
+            text=title_text,
             font_name=self.FONT_NAME,
             font_size=self.TITLE_FONT_SIZE,
-            batch=self.text_batch,
+            text_color=BROWN,
             bold=True,
-            color=BROWN
+            align="center",
+            size_hint=(1, 1) # Take full width of parent
         )
-        self.subtitle_text = arcade.Text(
-            subtitle_text,
-            x = self.title_text.x,
-            y = self.title_text.y + self.SUBTITLE_OFFSET_FROM_TITLE,
-            anchor_x="center",
+        self.subtitle_label = UILabel(
+            text=subtitle_text,
             font_name=self.FONT_NAME,
             font_size=self.SUBTITLE_FONT_SIZE,
-            color=BROWN,
-            batch=self.text_batch
+            text_color=BROWN,
+            align="center",
+            size_hint=(1, 1) # Take full width of parent
         )
-        self.ui = UIManager()
-        self.anchor = self.ui.add(UIAnchorLayout())
-        self.box_layout = UIBoxLayout(space_between=15)
-        self.previous_view = previous_view
+        self.header_box = UIBoxLayout(vertical=True)
+        self.header_box.add(UISpace(height=self.PADDING))
+        self.header_box.add(self.title_label)
+        self.header_box.add(self.subtitle_label)
+        self.header_box.add(UISpace(height=self.PADDING))
+        
+        # Create an anchor for the root. This will help center the layout
+        self.root_anchor = self.root_box_layout.add(UIAnchorLayout())
+        # The content box will contain the headers and the button pane
+        self.content_box = self.root_anchor.add(
+            UIBoxLayout(
+                vertical=True, 
+                space_between=self.PADDING
+            ),
+            anchor_x="center",
+            anchor_y="center"
+        )
+        # Add the header box (title and subtitle labels) to the content box
+        self.content_box.add(self.header_box)
+        self.button_pane = self.content_box.add(
+            UIBoxLayout(vertical=True, space_between=self.PADDING),
+            anchor_y="center"
+        )
+        self.content_box.add(UISpace(height=0))
+        self.tooltip_space = UISpace(height=50)
+        self.content_box.add(self.tooltip_space)
+        self.tooltip_text = UILabel(
+            text=" ",
+            width=self.window.width - 100,
+            height=100,
+            font_size=32,
+            font_name=self.FONT_NAME,
+            text_color=BROWN,
+            align="center",
+            multiline=False
+        )
+        self.is_tooltip_added = False
+
+        self.buttons_list = []
 
     def on_draw(self) -> None:
         """
         Performs the following operations:
         1. Clears the screen
         2. Draws the theme background
-        3. Draws the title and subtitle text elements
-        4. Draws the UI buttons
+        3. Draws the UI
         """
-        self.clear() # This is IMPORTANT! The text looks jagged without this!
+        self.clear()
         arcade.draw_texture_rect(
             SEPIA_BACKGROUND,
             arcade.LBWH(0, 0, self.window.width, self.window.height)
         )
-        self.text_batch.draw()
         self.ui.draw()
+        if not self.is_tooltip_added:
+            self._add_tooltip_to_layout()
+        self._update_tooltip_text()
 
     def on_show_view(self) -> None:
+        # self._reset_hover()
         self.ui.enable()
 
     def on_hide_view(self) -> None:
+        self._reset_hover()
         self.ui.disable()
 
     def return_to_previous_view(self) -> None:
@@ -89,25 +127,43 @@ class MenuView(arcade.View):
             self.return_to_previous_view()
 
     @classmethod
-    def create_button(cls, button_text: str) -> UIFlatButton:
+    def create_button(cls, button_text: str, tooltip_text: str = "") -> UITooltipButton:
         """
-        Creates a standardized button
+        Creates a standardized button.
         """
-        button = UIFlatButton(
+        button = UITooltipButton(
             text=button_text,
             width=cls.BUTTON_WIDTH,
-            style=sepia_button_style
+            style=sepia_button_style,
+            tooltip_text=tooltip_text
         )
         return button
-    
-    def initialize_buttons(self, buttons_list: list[UIFlatButton]) -> None:
+
+    def initialize_buttons(self, buttons_list: list[UITooltipButton]) -> None:
         """
-        Create all the buttons from the list
+        Adds buttons to the layout and sets up hover events if needed.
         """
+        self.buttons_list = buttons_list
         for button in buttons_list:
-            self.box_layout.add(button)
-        self.anchor.add(
-            self.box_layout, 
-            anchor_y="top", 
-            align_y=-(self.height - self.subtitle_text.y - self.BUTTON_OFFSET_FROM_SUBTITLE)
+            self.button_pane.add(button)
+
+    def _add_tooltip_to_layout(self):
+        print(self.tooltip_space.content_rect.center, self.content_box.rect.bottom)
+        self.root_anchor.add(
+            self.tooltip_text,
+            anchor_x="center",
+            anchor_y="bottom",
+            align_y=self.tooltip_space.center_y
         )
+        self.is_tooltip_added = True
+
+    def _update_tooltip_text(self):
+        self.tooltip_text.text = ""
+        for button in self.buttons_list:
+            if button.hovered:
+                self.tooltip_text.text = button.tooltip_text
+
+    def _reset_hover(self):
+        for button in self.buttons_list:
+            button.hovered = False
+        self._update_tooltip_text()

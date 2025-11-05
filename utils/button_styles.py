@@ -30,7 +30,7 @@ sepia_button_style = {
 }
 
 
-TRANSPARENT_BUTTON_FONT_SIZE = 28
+TRANSPARENT_BUTTON_FONT_SIZE = 32
 transparent_button_style = {
     "normal": UIFlatButton.UIStyle(
         font_name=BUTTON_FONT_NAME,

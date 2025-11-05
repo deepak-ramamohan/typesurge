@@ -13,7 +13,6 @@ def menu_view(mocker):
 
     # Mock arcade.Text to prevent it from trying to initialize fonts and graphics
     mocker.patch('arcade.Text')
-    mocker.patch('utils.menu_view.Batch')
     mocker.patch('utils.menu_view.UIManager')
     mocker.patch('utils.menu_view.UIAnchorLayout')
     mocker.patch('utils.menu_view.UIBoxLayout')

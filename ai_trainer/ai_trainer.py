@@ -272,8 +272,6 @@ class PauseView(MenuView):
         self.game_view = game_view
         self.save_manager = SaveManager(global_state.current_user_profile)
         self.session_stats = session_stats
-        self.TITLE_OFFSET_FROM_CENTER = 100
-        self.TITLE_FONT_SIZE = 64
         score_text = f"WPM: {self.session_stats.wpm:.1f}," + \
             f" Accuracy: {100.0 * self.session_stats.accuracy:.2f}%"
         super().__init__(
@@ -338,8 +336,6 @@ class GameCompletedView(MenuView):
         self.game_view = game_view
         self.save_manager = SaveManager(global_state.current_user_profile)
         self.session_stats = session_stats
-        self.TITLE_OFFSET_FROM_CENTER = 100
-        self.TITLE_FONT_SIZE = 64
         score_text = f"WPM: {self.session_stats.wpm:.1f}," + \
             f" Accuracy: {100.0 * self.session_stats.accuracy:.2f}%"
         super().__init__(
@@ -388,15 +384,16 @@ class ModeSelectionView(MenuView):
         """
         self.main_menu_view = main_menu_view
         self.user_profile = global_state.current_user_profile
-        self.TITLE_OFFSET_FROM_CENTER = 150
-        self.TITLE_FONT_SIZE = 64
         super().__init__(
             title_text="AI Trainer",
             subtitle_text="Choose your mode",
             previous_view=previous_view
         )
 
-        button_25_words = self.create_button("25 Words")
+        button_25_words = self.create_button(
+            "25 Words",
+            tooltip_text="A short and sweet session to warm up your fingers."
+        )
         @button_25_words.event("on_click")
         def _(event: "UIOnClickEvent") -> None:
             """
@@ -404,7 +401,10 @@ class ModeSelectionView(MenuView):
             """
             self.start_game(25)
 
-        button_50_words = self.create_button("50 Words")
+        button_50_words = self.create_button(
+            "50 Words",
+            tooltip_text="A balanced session to test your speed and accuracy."
+        )
         @button_50_words.event("on_click")
         def _(event: "UIOnClickEvent") -> None:
             """
@@ -412,7 +412,10 @@ class ModeSelectionView(MenuView):
             """
             self.start_game(50)
 
-        button_100_words = self.create_button("100 Words")
+        button_100_words = self.create_button(
+            "100 Words",
+            tooltip_text="A true test of endurance and focus. Can you keep up?"
+        )
         @button_100_words.event("on_click")
         def _(event: "UIOnClickEvent") -> None:
             """
@@ -420,7 +423,10 @@ class ModeSelectionView(MenuView):
             """
             self.start_game(100)
 
-        button_back = self.create_button("Back")
+        button_back = self.create_button(
+            "Back",
+            tooltip_text="Return to the main menu."
+        )
         @button_back.event("on_click")
         def _(event: "UIOnClickEvent") -> None:
             """
@@ -428,7 +434,10 @@ class ModeSelectionView(MenuView):
             """
             self.return_to_previous_view()
 
-        button_stats = self.create_button("View Stats")
+        button_stats = self.create_button(
+            "View Stats",
+            tooltip_text="Check your progress and see how you've improved over time."
+        )
         @button_stats.event("on_click")
         def _(event: "UIOnClickEvent") -> None:
             """
