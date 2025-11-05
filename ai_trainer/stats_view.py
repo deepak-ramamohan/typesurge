@@ -1,11 +1,9 @@
 import arcade
+import io
 import matplotlib.pyplot as plt
-from arcade.gui import UIOnClickEvent
-import numpy as np
-from matplotlib.ticker import FuncFormatter
+from arcade.gui import UIOnClickEvent, UISpace
 import matplotlib.font_manager as fm
 from utils.menu_view import MenuView
-import io
 from PIL import Image
 from utils.save_manager import SaveManager
 from utils import global_state
@@ -41,6 +39,9 @@ class StatsView(MenuView):
             Return to the previous view.
             """
             self.return_to_previous_view()
+
+        self.drawing_space = UISpace(height=int(self.window.height * 0.65))
+        self.header_box.add(self.drawing_space)
 
         self.initialize_buttons([back_button])
 
