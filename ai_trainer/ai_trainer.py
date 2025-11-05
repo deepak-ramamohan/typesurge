@@ -387,13 +387,12 @@ class ModeSelectionView(MenuView):
         super().__init__(
             title_text="AI Trainer",
             subtitle_text="Choose your mode",
-            previous_view=previous_view,
-            canvas=True
+            previous_view=previous_view
         )
 
         button_25_words = self.create_button(
             "25 Words",
-            hover_text="A short and sweet session to warm up your fingers."
+            tooltip_text="A short and sweet session to warm up your fingers."
         )
         @button_25_words.event("on_click")
         def _(event: "UIOnClickEvent") -> None:
@@ -404,7 +403,7 @@ class ModeSelectionView(MenuView):
 
         button_50_words = self.create_button(
             "50 Words",
-            hover_text="A balanced session to test your speed and accuracy."
+            tooltip_text="A balanced session to test your speed and accuracy."
         )
         @button_50_words.event("on_click")
         def _(event: "UIOnClickEvent") -> None:
@@ -415,7 +414,7 @@ class ModeSelectionView(MenuView):
 
         button_100_words = self.create_button(
             "100 Words",
-            hover_text="A true test of endurance and focus. Can you keep up?"
+            tooltip_text="A true test of endurance and focus. Can you keep up?"
         )
         @button_100_words.event("on_click")
         def _(event: "UIOnClickEvent") -> None:
@@ -426,7 +425,7 @@ class ModeSelectionView(MenuView):
 
         button_back = self.create_button(
             "Back",
-            hover_text="Return to the main menu."
+            tooltip_text="Return to the main menu."
         )
         @button_back.event("on_click")
         def _(event: "UIOnClickEvent") -> None:
@@ -437,7 +436,7 @@ class ModeSelectionView(MenuView):
 
         button_stats = self.create_button(
             "View Stats",
-            hover_text="Check your progress and see how you've improved over time."
+            tooltip_text="Check your progress and see how you've improved over time."
         )
         @button_stats.event("on_click")
         def _(event: "UIOnClickEvent") -> None:
