@@ -148,7 +148,6 @@ class MenuView(arcade.View):
             self.button_pane.add(button)
 
     def _add_tooltip_to_layout(self):
-        print(self.tooltip_space.content_rect.center, self.content_box.rect.bottom)
         self.root_anchor.add(
             self.tooltip_text,
             anchor_x="center",
