@@ -1,21 +1,30 @@
 import random
+import pandas as pd
 from collections import defaultdict
 
 
-def calculate_char_weights(char_accuracies, weight_decay_exponent=1.25):
+def calculate_char_weights(
+    char_metrics_df: pd.DataFrame, 
+    weight_decay_exponent: float = 1.25
+) -> defaultdict[str, float]:
     """
     Calculates weights for each character based on accuracy.
     """
-    sorted_accuracies = sorted(char_accuracies.items(), key=lambda x: x[1])
-    weight = 100.0
-    decay_limit = 6
-    decay_count = 0
-    char_weights = defaultdict(lambda: weight / weight_decay_exponent**decay_limit) # Default weight
-    for char, _ in sorted_accuracies:
-        char_weights[char] = weight
-        if decay_count < decay_limit:
-            weight /= weight_decay_exponent
-            decay_count += 1
+    rank_accuracy = char_metrics_df['accuracy'].rank(method='dense')
+    rank_speed = char_metrics_df['char_wpm'].rank(method='dense')
+    w0 = 100.0
+    decay_limit = 10
+    weight_accuracy = w0 * weight_decay_exponent**(
+        -1 * (rank_accuracy.apply(lambda x: min(x, decay_limit)) - 1)
+    )
+    weight_speed = w0 * weight_decay_exponent**(
+        -1 * (rank_speed.apply(lambda x: min(x, decay_limit)) - 1)
+    )
+    weight_total = (weight_accuracy + weight_speed) / 2
+    char_weights = defaultdict(
+        lambda: w0 / weight_decay_exponent**decay_limit,
+        weight_total.to_dict()
+    ) 
     print(char_weights)
     return char_weights
 
@@ -34,7 +43,7 @@ def calculate_word_weights(word_mistype_counts, weight_decay_exponent=1.1):
         if decay_count < decay_limit:
             weight /= weight_decay_exponent
             decay_count += 1
-    print(word_weights)
+    # print(word_weights)
     return word_weights
 
 
@@ -47,9 +56,9 @@ class WordManager:
     # Controls the influence of the word's general difficulty based on its characters.
     WEIGHT_CHAR_SCORE = 1.0
     # Controls how much influence a word's specific mistype history has.
-    WEIGHT_WORD_SCORE = 2.0
+    WEIGHT_WORD_SCORE = 1.0
     # A base weight for all words to ensure new/easy words still have a chance to appear.
-    WEIGHT_BASE = 0.0
+    WEIGHT_RANDOM = 1.0
 
     def __init__(self, file_path="words_v1.txt"):
         self._load_words(file_path)
@@ -83,7 +92,7 @@ class WordManager:
             # Calculate final hybrid weight
             final_weight = (self.WEIGHT_CHAR_SCORE * character_score) + \
                            (self.WEIGHT_WORD_SCORE * word_score) + \
-                           self.WEIGHT_BASE * weight_base_multiplier
+                           self.WEIGHT_RANDOM * random.gauss(0, 100)
 
             weighted_word_list.append((word, final_weight))
 
