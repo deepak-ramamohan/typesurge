@@ -70,22 +70,35 @@ class SaveManager:
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
-        stats_dict = asdict(session_stats)
-        data_tuple = (
-            stats_dict["session_start_time"],
-            json.dumps(stats_dict["char_confusion_matrix"]),
-            json.dumps(stats_dict["char_times"]),
-            stats_dict["wpm"],
-            json.dumps(stats_dict["word_mistype_counts"]),
-            stats_dict["chars_typed_correctly"],
-            stats_dict["chars_typed_total"],
-            stats_dict["accuracy"],
-            stats_dict["duration_seconds"]
-        )
-        with sqlite3.connect(self.file_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute(insert_query, data_tuple)
-            conn.commit()
+        if self._is_session_significant(session_stats):
+            stats_dict = asdict(session_stats)
+            data_tuple = (
+                stats_dict["session_start_time"],
+                json.dumps(stats_dict["char_confusion_matrix"]),
+                json.dumps(stats_dict["char_times"]),
+                stats_dict["wpm"],
+                json.dumps(stats_dict["word_mistype_counts"]),
+                stats_dict["chars_typed_correctly"],
+                stats_dict["chars_typed_total"],
+                stats_dict["accuracy"],
+                stats_dict["duration_seconds"]
+            )
+            with sqlite3.connect(self.file_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(insert_query, data_tuple)
+                conn.commit()
+
+    def _is_session_significant(self, session_stats: SessionStats) -> bool:
+        """
+        Check if a session is significant (and worth saving)
+        """
+        fail_conditions = [
+            session_stats.chars_typed_total < 10,
+            session_stats.duration_seconds < 5
+        ]
+        if any(fail_conditions):
+            return False
+        return True
 
     def fetch_all_session_stats(self) -> list:
         """
