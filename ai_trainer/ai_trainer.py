@@ -40,17 +40,12 @@ class AITrainerView(arcade.View):
         self.words_count = words_count
         save_manager = SaveManager(global_state.current_user_profile) 
         self.word_manager = WordManager()
-        # self.words_list = [
-        #     self.word_manager.generate_word(
-        #         min_character_count=self.WORD_CHARACTER_COUNT_MIN,
-        #         max_character_count=self.WORD_CHARACTER_COUNT_MAX
-        #     )
-        #     for _ in range(self.words_count)
-        # ]
-        char_accuracies = save_manager.get_char_accuracies()
-        word_mistype_counts = save_manager.get_word_mistype_counts()
-        char_weights = calculate_char_weights(char_accuracies)
-        word_weights = calculate_word_weights(word_mistype_counts)
+        char_weights = calculate_char_weights(
+            save_manager.get_all_session_stats().compute_aggregate_char_metrics()
+        )
+        word_weights = calculate_word_weights(
+            save_manager.get_word_mistype_counts()
+        )
         self.words_list = self.word_manager.get_weighted_sample(
             num_words=self.words_count,
             char_weights=char_weights,
@@ -58,6 +53,7 @@ class AITrainerView(arcade.View):
             min_character_count=self.WORD_CHARACTER_COUNT_MIN,
             max_character_count=self.WORD_CHARACTER_COUNT_MAX
         )
+        print(self.words_list)
         self.word_index = 0
         self.input_text = " ".join(self.words_list)
         self.padding_size = 150
