@@ -3,12 +3,15 @@ import pandas as pd
 from collections import defaultdict
 
 
-def calculate_char_weights(char_metrics_df: pd.DataFrame) -> defaultdict[str, float]:
+def calculate_char_weights(char_metrics_df: pd.DataFrame, noise: float = 1.0) -> defaultdict[str, float]:
     """
     Calculates weights for each character based on accuracy.
     """
     weights = char_metrics_df.apply(
-        lambda x: 100 * (1 - x['accuracy']) + 10.0 * int(x['count_total'] < 50), 
+        lambda x: 100 * (1 - x['accuracy']) +\
+            0.5 * min(100.0, x['mean_flight_time'] * 50) +\
+            10.0 * int(x['count_total'] < 50) +\
+            noise * random.gauss(), 
         axis=1
     )
     char_weights = defaultdict(
