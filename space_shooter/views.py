@@ -6,7 +6,14 @@ from space_shooter.player import Player
 from space_shooter.enemies import EnemySpawner, EnemyWordList, EnemyWord
 from space_shooter.explosion import Explosion
 from utils.helpers import calculate_angle_between_points, key_mapping
-from utils.resources import SEPIA_BACKGROUND, BULLET_SPRITE, SPACE_SHOOTER_MUSIC
+from utils.resources import (
+    SEPIA_BACKGROUND, 
+    BULLET_SPRITE, 
+    SPACE_SHOOTER_MUSIC, 
+    KEYPRESS_SOUND, 
+    ERROR_SOUND,
+    GAME_OVER_SOUND
+)
 from utils.menu_view import MenuView
 from utils.colors import BROWN
 from utils.music_manager import MusicManager
@@ -55,6 +62,8 @@ class SpaceShooterGameView(arcade.View):
             color=arcade.color.ANTIQUE_RUBY,
             bold=True
         )
+        self.multiplier = 1.0
+        self.streak = 0
         self._load_explosion_texture_list()
         self.laser_sound = arcade.Sound(":resources:/sounds/laser2.wav")
         self.explosion_sound = arcade.Sound(":resources:/sounds/explosion2.wav")
@@ -215,7 +224,7 @@ class SpaceShooterGameView(arcade.View):
         Add scores from the given enemy words.
         """
         for enemy_word in enemy_words:
-            self.score += 20 * len(enemy_word.word)
+            self.score += 20 * self.multiplier * len(enemy_word.word)
         self._update_score_text()
 
     def _check_laser_collisions(self, delta_time: float) -> None:
@@ -245,7 +254,8 @@ class SpaceShooterGameView(arcade.View):
             self._update_player_lives_text()
             self._spawn_enemies()
             if self.player.lives_remaining <= 0:
-                game_over_view = GameOverView(self.score, self.main_menu_view)
+                game_over_view = GameOverView(int(self.score), self.main_menu_view)
+                arcade.play_sound(GAME_OVER_SOUND, volume=1.0)
                 self.window.show_view(game_over_view)
 
     def _check_word_matches(self) -> None:
@@ -262,8 +272,17 @@ class SpaceShooterGameView(arcade.View):
                 full_match_count += 1
                 self._fire_laser_at(enemy_word)
         # If none of the words matches or there are full matches, reset the input
-        if mismatch_count == len(self.enemy_word_list) or full_match_count > 0:
+        if mismatch_count == len(self.enemy_word_list):
             self.input = ""
+            self._play_error_sound()
+            self.streak = 0
+        elif full_match_count > 0:
+            self.input = ""
+            self._play_keypress_sound()
+            self.streak += 1
+        else:
+            self._play_keypress_sound()
+        self._update_multiplier()
 
     def on_update(self, delta_time: float) -> None:
         """
@@ -273,13 +292,17 @@ class SpaceShooterGameView(arcade.View):
         self._check_laser_collisions(delta_time=delta_time)
         self.explosion_list.update(delta_time=delta_time)
         self.enemy_word_list.update(delta_time=delta_time)
-        self._check_word_matches()
+        # self._check_word_matches()
+
+    def _update_multiplier(self) -> None:
+        self.multiplier = min(1.0 + self.streak / 10.0, 5.0)
+        self._update_score_text()
 
     def _update_score_text(self) -> None:
         """
         Update the score text.
         """
-        self.score_text.text = f"Score: {self.score}"
+        self.score_text.text = f"Score: {self.score:.0f}, Multiplier: {self.multiplier:.1f}x"
 
     def _update_player_lives_text(self) -> None:
         """
@@ -294,8 +317,19 @@ class SpaceShooterGameView(arcade.View):
         if symbol == arcade.key.ESCAPE:
             pause_view = PauseView(self)
             self.window.show_view(pause_view)
-        key_pressed = key_mapping.get(symbol, "")
-        self.input = self.input + key_pressed
+        else:
+            key_pressed = key_mapping.get(symbol, "")
+            self.input = self.input + key_pressed
+            self._check_word_matches()
+
+    def _play_keypress_sound(self):
+        """
+        Play the keypress sound
+        """
+        arcade.play_sound(KEYPRESS_SOUND, volume=0.6)
+
+    def _play_error_sound(self):
+        arcade.play_sound(ERROR_SOUND, volume=0.4)
 
     def on_show_view(self) -> None:
         """

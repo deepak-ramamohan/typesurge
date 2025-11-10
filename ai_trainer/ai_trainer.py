@@ -5,7 +5,7 @@ import time
 from pyglet.graphics import Batch
 from pyglet.text import caret
 from utils.word_manager import WordManager, calculate_char_weights, calculate_word_weights
-from utils.resources import SEPIA_BACKGROUND
+from utils.resources import SEPIA_BACKGROUND, KEYPRESS_SOUND, ERROR_SOUND
 from utils.colors import BROWN
 from utils.menu_view import MenuView
 from utils.save_manager import SaveManager
@@ -99,7 +99,6 @@ class AITrainerView(arcade.View):
             color=self.WPM_TEXT_COLOR,
             batch=self.pyglet_batch
         )
-        self.typing_sound = arcade.Sound("assets/sounds/eklee-KeyPressMac06.wav")
         MusicManager.play_music(AI_TRAINER_MUSIC) 
         self.last_key_press_time = None
         self.pause_start_time = None
@@ -122,6 +121,7 @@ class AITrainerView(arcade.View):
         correct_char = self.padded_text[self.caret.position]
         self.session_stats.char_confusion_matrix[correct_char][input] += 1
         if input == correct_char:
+            self._play_keypress_sound()
             self.session_stats.chars_typed_correctly += 1
             self.text_document.set_style(
                 self.caret.position,
@@ -131,6 +131,7 @@ class AITrainerView(arcade.View):
                 )
             )
         else:
+            self._play_error_sound()
             self.text_document.delete_text(self.caret.position, self.caret.position + 1)
             if input == " ":
                 self.text_document.insert_text(self.caret.position, self.SPACE_CHAR)
@@ -201,8 +202,6 @@ class AITrainerView(arcade.View):
             self.pause_start_time = time.time()
             pause_view = PauseView(self, self.session_stats)
             self.window.show_view(pause_view)
-        else:
-            self._play_typing_sound()
 
     def _complete_game(self) -> None:
         """
@@ -211,11 +210,17 @@ class AITrainerView(arcade.View):
         game_completed_view = GameCompletedView(self, self.session_stats)
         self.window.show_view(game_completed_view)
 
-    def _play_typing_sound(self) -> None:
+    def _play_keypress_sound(self) -> None:
         """
-        Play the typing sound.
+        Play the keypress sound.
         """
-        arcade.play_sound(self.typing_sound, volume=0.75)
+        arcade.play_sound(KEYPRESS_SOUND, volume=0.75)
+
+    def _play_error_sound(self) -> None:
+        """
+        Play an error sound
+        """
+        arcade.play_sound(ERROR_SOUND, volume=0.4)
 
     def on_text(self, text: str) -> None:
         """
