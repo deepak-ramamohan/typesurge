@@ -3,28 +3,18 @@ import pandas as pd
 from collections import defaultdict
 
 
-def calculate_char_weights(
-    char_metrics_df: pd.DataFrame, 
-    weight_decay_exponent: float = 1.25
-) -> defaultdict[str, float]:
+def calculate_char_weights(char_metrics_df: pd.DataFrame) -> defaultdict[str, float]:
     """
     Calculates weights for each character based on accuracy.
     """
-    rank_accuracy = char_metrics_df['accuracy'].rank(method='dense')
-    rank_speed = char_metrics_df['char_wpm'].rank(method='dense')
-    w0 = 100.0
-    decay_limit = 10
-    weight_accuracy = w0 * weight_decay_exponent**(
-        -1 * (rank_accuracy.apply(lambda x: min(x, decay_limit)) - 1)
+    weights = char_metrics_df.apply(
+        lambda x: 100 * (1 - x['accuracy']) + 10.0 * int(x['count_total'] < 50), 
+        axis=1
     )
-    weight_speed = w0 * weight_decay_exponent**(
-        -1 * (rank_speed.apply(lambda x: min(x, decay_limit)) - 1)
-    )
-    weight_total = (weight_accuracy + weight_speed) / 2
     char_weights = defaultdict(
-        lambda: w0 / weight_decay_exponent**decay_limit,
-        weight_total.to_dict()
-    ) 
+        lambda: 10.0,
+        weights.to_dict()
+    )
     print(char_weights)
     return char_weights
 
@@ -34,7 +24,7 @@ def calculate_word_weights(word_mistype_counts, weight_decay_exponent=1.1):
     Calculates weights for each word based on mistype counts.
     """
     sorted_mistype_counts = sorted(word_mistype_counts.items(), key=lambda x: x[1], reverse=True)
-    weight = 100.0
+    weight = 1.0
     decay_limit = 10
     decay_count = 0
     word_weights = defaultdict(lambda: weight / weight_decay_exponent**decay_limit) # Default weight
@@ -92,7 +82,7 @@ class WordManager:
             # Calculate final hybrid weight
             final_weight = (self.WEIGHT_CHAR_SCORE * character_score) + \
                            (self.WEIGHT_WORD_SCORE * word_score) + \
-                           self.WEIGHT_RANDOM * random.gauss(0, 100)
+                           self.WEIGHT_RANDOM * random.gauss()
 
             weighted_word_list.append((word, final_weight))
 
