@@ -20,7 +20,7 @@ class EnemyWord(arcade.Sprite):
 
     """
 
-    MATCHED_COLOR = arcade.color.ANTIQUE_BRASS
+    MATCHED_COLOR = arcade.color.CELADON_GREEN
     UNMATCHED_COLOR = BROWN
     FONT_NAME = "Pixelzone"
     FONT_SIZE = 42
@@ -64,7 +64,7 @@ class EnemyWord(arcade.Sprite):
             self.movement_speed * math.cos(theta), 
             self.movement_speed * math.sin(theta)
         )
-        self.WORD_OFFSET_PIXELS = 35
+        self.WORD_OFFSET_PIXELS = 25
         self.word = word
         self.text_characters = [c for c in word]
         self.text_batch = Batch()
@@ -82,6 +82,7 @@ class EnemyWord(arcade.Sprite):
             )
             self.text_list.append(text)
         self._update_text_character_positions()
+        self.is_matched = False
 
     def update(self, delta_time: float = 1 / 60) -> None:
         """
@@ -103,14 +104,18 @@ class EnemyWord(arcade.Sprite):
         """
         Match the input text with the enemy word.
         """
-        for i, c in enumerate(other):
-            if i >= len(self.text_characters) or self.text_characters[i] != c:
-                self.reset_color()
-                return "mismatch"
-            self.text_list[i].color = self.MATCHED_COLOR
-        if len(self.text_characters) == len(other):
-            return "full"
-        return "partial"
+        if not self.is_matched:
+            for i, c in enumerate(other):
+                if i >= len(self.text_characters) or self.text_characters[i] != c:
+                    self.reset_color()
+                    return "mismatch"
+                self.text_list[i].color = self.MATCHED_COLOR
+            if len(self.text_characters) == len(other):
+                self.is_matched = True
+                return "full"
+            return "partial"
+        else:
+            return "mismatch"
     
     def reset_color(self) -> None:
         """

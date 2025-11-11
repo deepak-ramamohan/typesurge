@@ -195,7 +195,6 @@ class SpaceShooterGameView(arcade.View):
         laser.angle = math.degrees(2 * math.pi - theta) + LASER_ANGLE_OFFSET
         self.laser_list.append(laser)
         arcade.play_sound(self.laser_sound, volume=self.SOUND_VOLUME)
-        enemy_word.reset_color()
 
     def _load_explosion_texture_list(self) -> None:
         """
@@ -326,7 +325,11 @@ class SpaceShooterGameView(arcade.View):
         """
         Play the keypress sound
         """
-        arcade.play_sound(KEYPRESS_SOUND, volume=0.6)
+        arcade.play_sound(
+            KEYPRESS_SOUND, 
+            volume=random.uniform(0.55, 0.65),
+            speed=random.uniform(0.98, 1.02)
+        )
 
     def _play_error_sound(self):
         arcade.play_sound(ERROR_SOUND, volume=0.4)
