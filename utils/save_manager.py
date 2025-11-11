@@ -3,6 +3,7 @@ import os
 import json
 from utils.user_profile import UserProfile
 from ai_trainer.session_stats import SessionStats, SessionStatsList
+from space_shooter.game_stats import GameStats, GameStatsList
 from dataclasses import asdict
 from collections import defaultdict
 
@@ -31,7 +32,7 @@ class SaveManager:
         """
         Initializes the database and creates tables if they don't exist
         """
-        create_table_sql = """
+        create_session_stats_table_sql = """
         CREATE TABLE IF NOT EXISTS trainer_session_stats (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             session_start_time TIMESTAMP NOT NULL,
@@ -45,9 +46,53 @@ class SaveManager:
             duration_seconds REAL
         )
         """
+        create_space_shooter_table_sql = """
+        CREATE TABLE IF NOT EXISTS space_shooter_game_stats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            game_start_time TIMESTAMP NOT NULL,
+            score INTEGER
+        )
+        """
         with sqlite3.connect(self.file_path) as conn:
             cursor = conn.cursor()
-            cursor.execute(create_table_sql)
+            cursor.execute(create_session_stats_table_sql)
+            cursor.execute(create_space_shooter_table_sql)
+
+    def save_game_score_to_db(self, game_stats: GameStats) -> None:
+        """
+        Saves the space shooter game stats into the database.
+        """
+        insert_query = """
+        INSERT INTO space_shooter_game_stats (
+            game_start_time,
+            score
+        )
+        VALUES (?, ?)
+        """
+        data_tuple = (
+            game_stats.game_start_time,
+            game_stats.score
+        )
+        with sqlite3.connect(self.file_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(insert_query, data_tuple)
+            conn.commit()
+
+    def get_all_game_stats(self) -> GameStatsList:
+        game_stats_list = GameStatsList()
+        query = """SELECT * FROM space_shooter_game_stats"""
+        with sqlite3.connect(self.file_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(query)
+            for row in cursor.fetchall():
+                game_stats_list.append(
+                    GameStats(
+                        game_start_time=row["game_start_time"],
+                        score=row["score"]
+                    )
+                )
+        return game_stats_list
 
     def save_session_stats_to_db(self, session_stats: SessionStats) -> None:
         """
