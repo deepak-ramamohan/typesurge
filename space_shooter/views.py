@@ -5,6 +5,7 @@ import math
 from space_shooter.player import Player
 from space_shooter.enemies import EnemySpawner, EnemyWordList, EnemyWord
 from space_shooter.explosion import Explosion
+from space_shooter.game_stats import GameStats
 from utils.helpers import calculate_angle_between_points, key_mapping
 from utils.resources import (
     SEPIA_BACKGROUND, 
@@ -17,6 +18,8 @@ from utils.resources import (
 from utils.menu_view import MenuView
 from utils.colors import BROWN
 from utils.music_manager import MusicManager
+from utils import global_state
+from utils.save_manager import SaveManager
 
 
 class SpaceShooterGameView(arcade.View):
@@ -52,7 +55,8 @@ class SpaceShooterGameView(arcade.View):
         )
         self.input = ""
         self.explosion_list: arcade.SpriteList
-        self.score = 0
+        self.game_stats = GameStats()
+        self.game_stats.score = 0
         self.score_text = arcade.Text(
             text="",
             x=10,
@@ -81,7 +85,7 @@ class SpaceShooterGameView(arcade.View):
         self.input = ""
         self.player.reset_lives()
         self._update_player_lives_text()
-        self.score = 0
+        self.game_stats.score = 0
         self._update_score_text()
         self.laser_list = arcade.SpriteList()
         self.explosion_list = arcade.SpriteList()
@@ -136,43 +140,43 @@ class SpaceShooterGameView(arcade.View):
         """
         Update the difficulty based on the score.
         """
-        if self.score < 500:
+        if self.game_stats.score < 500:
             pass
-        elif self.score < 1000:
+        elif self.game_stats.score < 1000:
             self.ENEMY_MOVEMENT_SPEED_RANGE[0] = 0.8
-        elif self.score < 1500:
+        elif self.game_stats.score < 1500:
             self.ENEMY_COUNT_RANGE[0] = 3
-        elif self.score < 2000:
+        elif self.game_stats.score < 2000:
             self.ENEMY_MOVEMENT_SPEED_RANGE[0] = 0.85
-        elif self.score < 3000:
+        elif self.game_stats.score < 3000:
             self.ENEMY_WORD_CHARACTER_COUNT_RANGE[0] = 5
-        elif self.score < 4000:
+        elif self.game_stats.score < 4000:
             self.ENEMY_MOVEMENT_SPEED_RANGE[1] = 1.35
-        elif self.score < 5000:
+        elif self.game_stats.score < 5000:
             self.ENEMY_COUNT_RANGE[1] = 6
-        elif self.score < 6500:
+        elif self.game_stats.score < 6500:
             self.ENEMY_MOVEMENT_SPEED_RANGE[0] = 0.9
-        elif self.score < 8000:
+        elif self.game_stats.score < 8000:
             self.ENEMY_WORD_CHARACTER_COUNT_RANGE[1] = 8
-        elif self.score < 10000:
+        elif self.game_stats.score < 10000:
             self.ENEMY_COUNT_RANGE[0] = 4
-        elif self.score < 12000:
+        elif self.game_stats.score < 12000:
             self.ENEMY_WORD_CHARACTER_COUNT_RANGE[1] = 9
-        elif self.score < 14000:
+        elif self.game_stats.score < 14000:
             self.ENEMY_MOVEMENT_SPEED_RANGE[0] = 1.0
-        elif self.score < 15000:
+        elif self.game_stats.score < 15000:
             self.ENEMY_MOVEMENT_SPEED_RANGE[1] = 1.5
-        elif self.score < 17000:
+        elif self.game_stats.score < 17000:
             self.ENEMY_COUNT_RANGE[1] = 7
-        elif self.score < 18500:
+        elif self.game_stats.score < 18500:
             self.ENEMY_WORD_CHARACTER_COUNT_RANGE[0] = 6
-        elif self.score < 20000:
+        elif self.game_stats.score < 20000:
             self.ENEMY_WORD_CHARACTER_COUNT_RANGE[1] = 11
-        elif self.score < 22500:
+        elif self.game_stats.score < 22500:
             self.ENEMY_MOVEMENT_SPEED_RANGE[1] = 1.65
-        elif self.score < 25000:
+        elif self.game_stats.score < 25000:
             self.ENEMY_COUNT_RANGE[0] = 5
-        elif self.score < 27500:
+        elif self.game_stats.score < 27500:
             self.ENEMY_MOVEMENT_SPEED_RANGE[0] = 1.2
         else:
             self.ENEMY_MOVEMENT_SPEED_RANGE[1] = 2.0
@@ -223,7 +227,7 @@ class SpaceShooterGameView(arcade.View):
         Add scores from the given enemy words.
         """
         for enemy_word in enemy_words:
-            self.score += 20 * self.multiplier * len(enemy_word.word)
+            self.game_stats.score += int(20 * self.multiplier * len(enemy_word.word))
         self._update_score_text()
 
     def _check_laser_collisions(self, delta_time: float) -> None:
@@ -253,7 +257,7 @@ class SpaceShooterGameView(arcade.View):
             self._update_player_lives_text()
             self._spawn_enemies()
             if self.player.lives_remaining <= 0:
-                game_over_view = GameOverView(int(self.score), self.main_menu_view)
+                game_over_view = GameOverView(self.game_stats, self.main_menu_view)
                 arcade.play_sound(GAME_OVER_SOUND, volume=1.0)
                 self.window.show_view(game_over_view)
 
@@ -301,7 +305,7 @@ class SpaceShooterGameView(arcade.View):
         """
         Update the score text.
         """
-        self.score_text.text = f"Score: {self.score:.0f}, Multiplier: {self.multiplier:.1f}x"
+        self.score_text.text = f"Score: {self.game_stats.score:.0f}, Multiplier: {self.multiplier:.1f}x"
 
     def _update_player_lives_text(self) -> None:
         """
@@ -314,7 +318,7 @@ class SpaceShooterGameView(arcade.View):
         Handle key presses.
         """
         if symbol == arcade.key.ESCAPE:
-            pause_view = PauseView(self)
+            pause_view = PauseView(self, self.game_stats)
             self.window.show_view(pause_view)
         else:
             key_pressed = key_mapping.get(symbol, "")
@@ -352,13 +356,15 @@ class PauseView(MenuView):
     The pause view.
     """
 
-    def __init__(self, game_view: SpaceShooterGameView) -> None:
+    def __init__(self, game_view: SpaceShooterGameView, game_stats: GameStats) -> None:
         """
         Initializer
         """
         self.game_view = game_view
+        self.game_stats = game_stats
+        self.save_manager = SaveManager(global_state.current_user_profile)
         title_text = "Game Paused"
-        subtitle_text = f"Your Score: {self.game_view.score}"
+        subtitle_text = f"Your Score: {self.game_view.game_stats.score}"
         self.TITLE_FONT_SIZE = 64
         super().__init__(
             title_text=title_text,
@@ -405,6 +411,7 @@ class PauseView(MenuView):
         """
         Return to the main menu.
         """
+        self.save_manager.save_game_score_to_db(self.game_stats)
         self.window.show_view(self.game_view.main_menu_view)
 
 
@@ -413,34 +420,52 @@ class GameOverView(MenuView):
     The game over view.
     """
 
-    def __init__(self, score: int, main_menu_view: arcade.View) -> None:
+    def __init__(self, game_stats: GameStats, main_menu_view: arcade.View) -> None:
         """
         Initializer
         """
-        self.score = score
+        self.save_manager = SaveManager(global_state.current_user_profile)
+        self.save_manager.save_game_score_to_db(game_stats)
+        high_score = self.save_manager.get_all_game_stats().get_high_score()
         self.main_menu_view = main_menu_view
-        score_text = f"Your Score: {self.score}"
+        if game_stats.score == high_score:
+            score_text = f"Your Score: {game_stats.score}; New High Score!"
+        else:
+            score_text = f"Your Score: {game_stats.score}; High Score: {high_score}"
         super().__init__(
             title_text="Game Over!",
             subtitle_text=score_text
         )
 
-        continue_button = self.create_button("Continue")
-        @continue_button.event("on_click")
+        restart_button = self.create_button("Restart")
+        @restart_button.event("on_click")
+        def _(event: UIOnClickEvent) -> None:
+            self._restart_game()
+
+        return_to_main_menu_button = self.create_button("Return to Main Menu")
+        @return_to_main_menu_button.event("on_click")
         def _(event: "UIOnClickEvent") -> None:
             """
-            Continue to the main menu.
+            Return to the main menu.
             """
-            self._continue_to_main_menu()
+            self._return_to_main_menu()
 
         self.initialize_buttons(
             [
-                continue_button
+                restart_button,
+                return_to_main_menu_button
             ]
         )
 
-    def _continue_to_main_menu(self) -> None:
+    def _return_to_main_menu(self) -> None:
         """
         Continue to the main menu.
         """
         self.window.show_view(self.main_menu_view)
+
+    def _restart_game(self) -> None:
+        """
+        Starts a new session of the space shooter game
+        """
+        game_view = SpaceShooterGameView(self.main_menu_view)
+        self.window.show_view(game_view)
