@@ -12,7 +12,7 @@ from utils.save_manager import SaveManager
 from utils import global_state
 from utils.resources import AI_TRAINER_MUSIC
 from utils.music_manager import MusicManager
-from ai_trainer.session_stats import SessionStats
+from ai_trainer.session_stats import SessionStats, SessionStatsList
 from ai_trainer.stats_view import StatsView
 
 
@@ -336,9 +336,18 @@ class GameCompletedView(MenuView):
         """
         self.game_view = game_view
         self.save_manager = SaveManager(global_state.current_user_profile)
-        self.session_stats = session_stats
-        score_text = f"WPM: {self.session_stats.wpm:.1f}," + \
-            f" Accuracy: {100.0 * self.session_stats.accuracy:.2f}%"
+        self.save_manager.save_session_stats_to_db(session_stats)
+        # Show session feedback to the user
+        session_stats_list = SessionStatsList([session_stats])
+        metrics_df = session_stats_list.compute_aggregate_char_metrics()
+        metrics_df.sort_values(by='mean_flight_time', ascending=True, inplace=True)
+        top3 = metrics_df.head(3)
+        bottom3 = metrics_df.tail(3)
+        top3_text = f"Fastest characters: {top3.iloc[0].name}, {top3.iloc[1].name}, {top3.iloc[2].name}\n"
+        bottom3_text = f"Slowest characters: {bottom3.iloc[2].name}, {bottom3.iloc[1].name}, {bottom3.iloc[0].name}"
+        score_text = f"WPM: {session_stats.wpm:.1f}," + \
+            f" Accuracy: {100.0 * session_stats.accuracy:.2f}%\n" + \
+            top3_text + bottom3_text
         super().__init__(
             title_text="Session Completed!",
             subtitle_text=score_text
@@ -369,7 +378,7 @@ class GameCompletedView(MenuView):
         """
         Return to the main menu.
         """
-        self.save_manager.save_session_stats_to_db(self.session_stats)
+        
         # self.save_manager.load_and_print_db()
         self.window.show_view(self.game_view.main_menu_view)
 
