@@ -51,7 +51,8 @@ class MenuView(arcade.View):
             font_size=self.SUBTITLE_FONT_SIZE,
             text_color=BROWN,
             align="center",
-            size_hint=(1, 1) # Take full width of parent
+            size_hint=(1, 1), # Take full width of parent
+            multiline=True
         )
         self.header_box = UIBoxLayout(vertical=True)
         self.header_box.add(UISpace(height=self.PADDING))
