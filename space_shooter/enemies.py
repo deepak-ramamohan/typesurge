@@ -7,7 +7,7 @@ from pyglet.graphics import Batch
 from utils.word_manager import WordManager
 import numpy as np
 from utils.colors import BROWN
-from utils.resources import METEOR_SPRITE_1, METEOR_SPRITE_2
+from utils.resources import METEOR_SPRITE_1, METEOR_SPRITE_2, METEOR_SPRITE_3
 
 
 class EnemyWord(arcade.Sprite):
@@ -26,10 +26,10 @@ class EnemyWord(arcade.Sprite):
     FONT_SIZE = 42
     METEOR_SPRITE_OPTIONS = [
         METEOR_SPRITE_1,
-        METEOR_SPRITE_2
+        METEOR_SPRITE_2,
+        METEOR_SPRITE_3
     ]
-    METEOR_SPRITE_SCALE = 0.35
-    METEOR_SPRITE_COLOR = BROWN
+    METEOR_SPRITE_SCALE = 0.45
 
     def __init__(
         self, 
@@ -49,7 +49,6 @@ class EnemyWord(arcade.Sprite):
             center_y=y,
             scale=self.METEOR_SPRITE_SCALE
         )
-        self.color = self.METEOR_SPRITE_COLOR
         self.movement_speed = random.uniform(
             movement_speed_range[0],
             movement_speed_range[1]
@@ -61,7 +60,7 @@ class EnemyWord(arcade.Sprite):
             self.movement_speed * math.sin(theta)
         )
         self.velocity = self.base_velocity
-        self.WORD_OFFSET_PIXELS = 25
+        self.WORD_OFFSET_PIXELS = 35
         self.word = word
         self.text_characters = [c for c in word]
         self.text_batch = Batch()
@@ -163,7 +162,7 @@ class EnemySpawner():
     """
 
     ANGLE_RANGE_DEGREES = 45
-    OFFSCREEN_SPAWN_OFFSET_PIXELS = 30
+    OFFSCREEN_SPAWN_OFFSET_PIXELS = 25
     SPAWN_POINTS_COUNT = 9  # Number of distinct spawn points
     SPAWN_COOLDOWN_SECONDS = 5
 
