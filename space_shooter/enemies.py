@@ -24,10 +24,6 @@ class EnemyWord(arcade.Sprite):
     UNMATCHED_COLOR = BROWN
     FONT_NAME = "Pixelzone"
     FONT_SIZE = 42
-    # METEOR_SPRITE_OPTIONS = [
-    #     ":resources:/images/space_shooter/meteorGrey_med1.png",
-    #     ":resources:/images/space_shooter/meteorGrey_med2.png"
-    # ]
     METEOR_SPRITE_OPTIONS = [
         METEOR_SPRITE_1,
         METEOR_SPRITE_2
@@ -60,10 +56,11 @@ class EnemyWord(arcade.Sprite):
         )
         self.change_angle = random.uniform(-5.0, 5.0)
         theta = calculate_angle_between_points(position, target_position)
-        self.velocity = (
+        self.base_velocity = (
             self.movement_speed * math.cos(theta), 
             self.movement_speed * math.sin(theta)
         )
+        self.velocity = self.base_velocity
         self.WORD_OFFSET_PIXELS = 25
         self.word = word
         self.text_characters = [c for c in word]
@@ -104,12 +101,19 @@ class EnemyWord(arcade.Sprite):
         """
         Match the input text with the enemy word.
         """
+        match_count = 0
         if not self.is_matched:
             for i, c in enumerate(other):
                 if i >= len(self.text_characters) or self.text_characters[i] != c:
-                    self.reset_color()
+                    self.reset_color_and_velocity()
                     return "mismatch"
                 self.text_list[i].color = self.MATCHED_COLOR
+                match_count += 1
+            velocity_multiplier = 1.0 * (len(self.word) - match_count) / len(self.word)
+            self.velocity = (
+                self.base_velocity[0] * velocity_multiplier,
+                self.base_velocity[1] * velocity_multiplier
+            )
             if len(self.text_characters) == len(other):
                 self.is_matched = True
                 return "full"
@@ -117,12 +121,13 @@ class EnemyWord(arcade.Sprite):
         else:
             return "mismatch"
     
-    def reset_color(self) -> None:
+    def reset_color_and_velocity(self) -> None:
         """
-        Reset the color of the text characters.
+        Reset the color of the text characters and the velocity.
         """
         for text in self.text_list:
             text.color = self.UNMATCHED_COLOR
+        self.velocity = self.base_velocity
     
     def draw(self) -> None:
         """
