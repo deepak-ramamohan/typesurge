@@ -429,9 +429,9 @@ class GameOverView(MenuView):
         high_score = self.save_manager.get_all_game_stats().get_high_score()
         self.main_menu_view = main_menu_view
         if game_stats.score == high_score:
-            score_text = f"Your Score: {game_stats.score}; New High Score!"
+            score_text = f"Your Score: {game_stats.score}\nNew High Score!"
         else:
-            score_text = f"Your Score: {game_stats.score}; High Score: {high_score}"
+            score_text = f"Your Score: {game_stats.score}\nYour High Score: {high_score}"
         super().__init__(
             title_text="Game Over!",
             subtitle_text=score_text
