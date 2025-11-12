@@ -1,22 +1,20 @@
 import arcade
 from arcade.gui import UIOnClickEvent
 import random
-import math
 from space_shooter.player import Player
 from space_shooter.enemies import EnemySpawner, EnemyWordList, EnemyWord
 from space_shooter.explosion import Explosion
+from space_shooter.laser import Laser
 from space_shooter.game_stats import GameStats
-from utils.helpers import calculate_angle_between_points, key_mapping
+from utils.helpers import key_mapping
 from utils.resources import (
-    SEPIA_BACKGROUND, 
-    BULLET_SPRITE, 
+    SEPIA_BACKGROUND,
     SPACE_SHOOTER_MUSIC, 
     KEYPRESS_SOUND, 
     ERROR_SOUND,
     GAME_OVER_SOUND
 )
 from utils.menu_view import MenuView
-from utils.colors import BROWN
 from utils.music_manager import MusicManager
 from utils import global_state
 from utils.save_manager import SaveManager
@@ -31,7 +29,6 @@ class SpaceShooterGameView(arcade.View):
     ENEMY_COUNT_RANGE = [2, 5]
     ENEMY_WORD_CHARACTER_COUNT_RANGE = [4, 7]
     ENEMY_MOVEMENT_SPEED_RANGE = [0.75, 1.25]
-    LASER_SPEED = 40
     SOUND_VOLUME = 1.0
     FONT_NAME = "Pixelzone"
     
@@ -69,12 +66,8 @@ class SpaceShooterGameView(arcade.View):
         self.multiplier = 1.0
         self.streak = 0
         self._load_explosion_texture_list()
-        self.laser_sound = arcade.Sound(":resources:/sounds/laser2.wav")
         self.explosion_sound = arcade.Sound(":resources:/sounds/explosion2.wav")
         self.game_over_sound = arcade.Sound(":resources:/sounds/gameover3.wav")
-        # For fixing the initial sound distortion, play something at zero volume
-        # Subsequent sounds will then play clearly
-        arcade.play_sound(self.laser_sound, volume=0)
         MusicManager.play_music(SPACE_SHOOTER_MUSIC)
         self.setup()
 
@@ -83,7 +76,6 @@ class SpaceShooterGameView(arcade.View):
         Set up the game.
         """
         self.input = ""
-        self.player.reset_lives()
         self._update_player_lives_text()
         self.game_stats.score = 0
         self._update_score_text()
@@ -102,7 +94,7 @@ class SpaceShooterGameView(arcade.View):
             arcade.LBWH(0, 0, self.window.width, self.window.height)
         )
         self.laser_list.draw()
-        arcade.draw_sprite(self.player)
+        self.player.draw()
         self.enemy_word_list.draw()
         self.explosion_list.draw()
         self.score_text.draw()
@@ -184,21 +176,12 @@ class SpaceShooterGameView(arcade.View):
             self.ENEMY_WORD_CHARACTER_COUNT_RANGE[1] = 13
         
 
-    def _fire_laser_at(self, enemy_word: "EnemyWord") -> None:
+    def _fire_laser_at(self, enemy_word: EnemyWord) -> None:
         """
         Fire a laser at the given enemy word.
         """
-        # laser = arcade.Sprite(":resources:/images/space_shooter/laserRed01.png")
-        laser = arcade.Sprite(BULLET_SPRITE, scale=0.2)
-        laser.color = BROWN
-        LASER_ANGLE_OFFSET = 90
-        laser.center_y = self.player.center_y
-        laser.left = self.player.right
-        theta = calculate_angle_between_points(laser.position, enemy_word.position)
-        laser.velocity = (self.LASER_SPEED * math.cos(theta), self.LASER_SPEED * math.sin(theta))
-        laser.angle = math.degrees(2 * math.pi - theta) + LASER_ANGLE_OFFSET
+        laser = Laser(self.player, enemy_word)
         self.laser_list.append(laser)
-        arcade.play_sound(self.laser_sound, volume=self.SOUND_VOLUME)
 
     def _load_explosion_texture_list(self) -> None:
         """
@@ -211,23 +194,21 @@ class SpaceShooterGameView(arcade.View):
             count=16*10
         )
 
-    def _create_explosions_at_sprites(self, sprites_list: list[arcade.Sprite]) -> None:
+    def _create_explosion_at_sprite(self, sprite: arcade.Sprite) -> None:
         """
-        Create explosions at the given sprites.
+        Create an explosion at the given sprite (and remove the sprite).
         """
-        for sprite in sprites_list:
-            arcade.play_sound(self.explosion_sound, volume=self.SOUND_VOLUME)
-            explosion = Explosion(self.explosion_texture_list)
-            explosion.position = sprite.position
-            self.explosion_list.append(explosion)
-            sprite.remove_from_sprite_lists()
+        arcade.play_sound(self.explosion_sound, volume=self.SOUND_VOLUME)
+        explosion = Explosion(self.explosion_texture_list)
+        explosion.position = sprite.position
+        self.explosion_list.append(explosion)
+        sprite.remove_from_sprite_lists()
 
-    def _add_scores_from_words(self, enemy_words: list["EnemyWord"]) -> None:
+    def _add_score_from_word(self, enemy_word: EnemyWord) -> None:
         """
         Add scores from the given enemy words.
         """
-        for enemy_word in enemy_words:
-            self.game_stats.score += int(20 * self.multiplier * len(enemy_word.word))
+        self.game_stats.score += int(20 * self.multiplier * len(enemy_word.word))
         self._update_score_text()
 
     def _check_laser_collisions(self, delta_time: float) -> None:
@@ -239,20 +220,22 @@ class SpaceShooterGameView(arcade.View):
             if laser.left > self.window.width:
                 laser.remove_from_sprite_lists()
             collisions = arcade.check_for_collision_with_list(laser, self.enemy_word_list)
-            if collisions:
-                laser.remove_from_sprite_lists()
-                self._add_scores_from_words(collisions)
-                self._create_explosions_at_sprites(collisions)
-                self._spawn_enemies()
-                self._update_difficulty()
+            for enemy_word in collisions:
+                if enemy_word == laser.target:
+                    laser.remove_from_sprite_lists()
+                    self._add_score_from_word(enemy_word)
+                    self._create_explosion_at_sprite(enemy_word)
+                    self._spawn_enemies()
+                    self._update_difficulty()
 
     def _check_player_collision(self) -> None:
         """
-        Check for player collision.
+        Check if any of the enemy words collides with the player.
+        Update player lives and show 'Game Over' if no lives remain.
         """
         collisions = arcade.check_for_collision_with_list(self.player, self.enemy_word_list)
-        if collisions:
-            self._create_explosions_at_sprites(collisions)
+        for enemy_word in collisions:
+            self._create_explosion_at_sprite(enemy_word)
             self.player.lives_remaining -= 1
             self._update_player_lives_text()
             self._spawn_enemies()
@@ -295,7 +278,6 @@ class SpaceShooterGameView(arcade.View):
         self._check_laser_collisions(delta_time=delta_time)
         self.explosion_list.update(delta_time=delta_time)
         self.enemy_word_list.update(delta_time=delta_time)
-        # self._check_word_matches()
 
     def _update_multiplier(self) -> None:
         self.multiplier = min(1.0 + self.streak / 10.0, 5.0)
