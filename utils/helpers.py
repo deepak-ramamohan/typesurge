@@ -46,7 +46,7 @@ def tint_image(image: Image.Image, color: tuple[int, int, int]) -> Image.Image:
 
 def load_image(
     path: str, 
-    invert: bool = True, 
+    invert: bool = False, 
     tint_color: tuple[int, int, int] = (255, 255, 255)
 ) -> Image.Image:
     image = Image.open(path)
