@@ -1,6 +1,9 @@
 import arcade
-from utils.colors import BROWN
-from utils.resources import SPACESHIP_SPRITE
+from utils.resources import (
+    SPACESHIP_SPRITE, 
+    SPACESHIP_DAMAGE_SPRITE_1, 
+    SPACESHIP_DAMAGE_SPRITE_2
+)
 
 
 class Player(arcade.Sprite):
@@ -12,19 +15,38 @@ class Player(arcade.Sprite):
         """
         Initializer
         """
+        ANGLE = 90
+        SCALE = 0.8
         super().__init__(
             SPACESHIP_SPRITE,
             center_x=center_x,
             center_y=center_y,
-            angle=90,
-            scale=0.7
+            angle=ANGLE,
+            scale=SCALE
         )
-        self.color = BROWN
+        self.damage_sprite_1 = arcade.Sprite(
+            SPACESHIP_DAMAGE_SPRITE_1,
+            center_x=center_x,
+            center_y=center_y,
+            angle=ANGLE,
+            scale=SCALE
+        )
+        self.damage_sprite_2 = arcade.Sprite(
+            SPACESHIP_DAMAGE_SPRITE_2,
+            center_x=center_x,
+            center_y=center_y,
+            angle=ANGLE,
+            scale=SCALE
+        )
         self.MAX_LIVES = 3
         self.lives_remaining = self.MAX_LIVES
 
-    def reset_lives(self) -> None:
+    def draw(self) -> None:
         """
-        Reset the player's lives.
+        Draw the player sprite, with appropriate damage
         """
-        self.lives_remaining = self.MAX_LIVES
+        arcade.draw_sprite(self)
+        if self.lives_remaining == 2:
+            arcade.draw_sprite(self.damage_sprite_1)
+        elif self.lives_remaining == 1:
+            arcade.draw_sprite(self.damage_sprite_2)
