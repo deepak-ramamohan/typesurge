@@ -1,5 +1,5 @@
 import arcade
-from space_shooter.views import SpaceShooterGameView
+from space_shooter.views import SSDifficultySelectionView
 from ai_trainer.ai_trainer import ModeSelectionView
 from utils.menu_view import MenuView
 from utils.resources import USER_PROFILE_SPRITE
@@ -132,7 +132,7 @@ class MainMenuView(MenuView):
         """
         Start the space shooter game.
         """
-        game_view = SpaceShooterGameView(self)
+        game_view = SSDifficultySelectionView(self, self)
         self.window.show_view(game_view)
 
     def _start_ai_trainer(self) -> None:
