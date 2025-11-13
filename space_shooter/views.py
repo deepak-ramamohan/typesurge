@@ -1,11 +1,13 @@
 import arcade
 from arcade.gui import UIOnClickEvent
 import random
+import math
 from space_shooter.player import Player
 from space_shooter.enemies import EnemySpawner, EnemyWordList, EnemyWord
 from space_shooter.explosion import Explosion
 from space_shooter.laser import Laser
 from space_shooter.game_stats import GameStats
+from space_shooter.difficulty import Difficulty
 from utils.helpers import key_mapping
 from utils.resources import (
     SEPIA_BACKGROUND,
@@ -25,18 +27,14 @@ class SpaceShooterGameView(arcade.View):
     The main game view.
     """
 
-    BACKGROUND_COLOR = arcade.color.CHARCOAL
-    ENEMY_COUNT_RANGE = [2, 5]
-    ENEMY_WORD_CHARACTER_COUNT_RANGE = [4, 7]
-    ENEMY_MOVEMENT_SPEED_RANGE = [0.75, 1.25]
     SOUND_VOLUME = 1.0
     FONT_NAME = "Pixelzone"
     
-    def __init__(self, main_menu_view: arcade.View) -> None:
+    def __init__(self, main_menu_view: arcade.View, difficulty_level: int = 1) -> None:
         """
         Initializer
         """
-        super().__init__(background_color=self.BACKGROUND_COLOR)
+        super().__init__()
         self.window.set_mouse_visible(False)
         self.main_menu_view = main_menu_view
         self.enemy_spawner = EnemySpawner()
@@ -63,6 +61,7 @@ class SpaceShooterGameView(arcade.View):
             color=arcade.color.ANTIQUE_RUBY,
             bold=True
         )
+        self.difficulty = Difficulty(difficulty_level=difficulty_level)
         self.multiplier = 1.0
         self.streak = 0
         self._load_explosion_texture_list()
@@ -102,80 +101,36 @@ class SpaceShooterGameView(arcade.View):
 
     def _spawn_enemies(self) -> None:
         """
-        Keep spawning enemies to ensure that the count is between ENEMY_COUNT_MIN and ENEMY_COUNT_MAX
+        Keep spawning enemies according to the difficulty setting
         """
         current_enemy_count = len(self.enemy_word_list)
         count_target = random.randrange(
-            self.ENEMY_COUNT_RANGE[0], 
-            self.ENEMY_COUNT_RANGE[1] + 1
+            self.difficulty.enemy_count.min, 
+            self.difficulty.enemy_count.max + 1
         )
         while current_enemy_count < count_target:
             enemy_word = self.enemy_spawner.spawn_enemy_word(
                 player_position=self.player.position,
                 window_width=self.window.width,
                 window_height=self.window.height,
-                character_count_range=self.ENEMY_WORD_CHARACTER_COUNT_RANGE,
-                movement_speed_range=self.ENEMY_MOVEMENT_SPEED_RANGE
+                character_count_range=[
+                    self.difficulty.enemy_word_length.min,
+                    self.difficulty.enemy_word_length.max
+                ],
+                movement_speed_range=[
+                    self.difficulty.enemy_movement_speed.min,
+                    self.difficulty.enemy_movement_speed.max
+                ]
             )
             self.enemy_word_list.append(enemy_word)
             current_enemy_count += 1
-
-    def _reset_difficulty(self) -> None:
-        """
-        Reset the difficulty.
-        """
-        self.ENEMY_COUNT_RANGE = [2, 5]
-        self.ENEMY_WORD_CHARACTER_COUNT_RANGE = [4, 7]
-        self.ENEMY_MOVEMENT_SPEED_RANGE = [0.75, 1.25]
 
     def _update_difficulty(self) -> None:
         """
         Update the difficulty based on the score.
         """
-        if self.game_stats.score < 500:
-            pass
-        elif self.game_stats.score < 1000:
-            self.ENEMY_MOVEMENT_SPEED_RANGE[0] = 0.8
-        elif self.game_stats.score < 1500:
-            self.ENEMY_COUNT_RANGE[0] = 3
-        elif self.game_stats.score < 2000:
-            self.ENEMY_MOVEMENT_SPEED_RANGE[0] = 0.85
-        elif self.game_stats.score < 3000:
-            self.ENEMY_WORD_CHARACTER_COUNT_RANGE[0] = 5
-        elif self.game_stats.score < 4000:
-            self.ENEMY_MOVEMENT_SPEED_RANGE[1] = 1.35
-        elif self.game_stats.score < 5000:
-            self.ENEMY_COUNT_RANGE[1] = 6
-        elif self.game_stats.score < 6500:
-            self.ENEMY_MOVEMENT_SPEED_RANGE[0] = 0.9
-        elif self.game_stats.score < 8000:
-            self.ENEMY_WORD_CHARACTER_COUNT_RANGE[1] = 8
-        elif self.game_stats.score < 10000:
-            self.ENEMY_COUNT_RANGE[0] = 4
-        elif self.game_stats.score < 12000:
-            self.ENEMY_WORD_CHARACTER_COUNT_RANGE[1] = 9
-        elif self.game_stats.score < 14000:
-            self.ENEMY_MOVEMENT_SPEED_RANGE[0] = 1.0
-        elif self.game_stats.score < 15000:
-            self.ENEMY_MOVEMENT_SPEED_RANGE[1] = 1.5
-        elif self.game_stats.score < 17000:
-            self.ENEMY_COUNT_RANGE[1] = 7
-        elif self.game_stats.score < 18500:
-            self.ENEMY_WORD_CHARACTER_COUNT_RANGE[0] = 6
-        elif self.game_stats.score < 20000:
-            self.ENEMY_WORD_CHARACTER_COUNT_RANGE[1] = 11
-        elif self.game_stats.score < 22500:
-            self.ENEMY_MOVEMENT_SPEED_RANGE[1] = 1.65
-        elif self.game_stats.score < 25000:
-            self.ENEMY_COUNT_RANGE[0] = 5
-        elif self.game_stats.score < 27500:
-            self.ENEMY_MOVEMENT_SPEED_RANGE[0] = 1.2
-        else:
-            self.ENEMY_MOVEMENT_SPEED_RANGE[1] = 2.0
-            self.ENEMY_COUNT_RANGE[1] = 9
-            self.ENEMY_WORD_CHARACTER_COUNT_RANGE[1] = 13
+        self.difficulty.update_difficulty(self.game_stats.score)
         
-
     def _fire_laser_at(self, enemy_word: EnemyWord) -> None:
         """
         Fire a laser at the given enemy word.
@@ -280,14 +235,18 @@ class SpaceShooterGameView(arcade.View):
         self.enemy_word_list.update(delta_time=delta_time)
 
     def _update_multiplier(self) -> None:
-        self.multiplier = min(1.0 + self.streak / 10.0, 5.0)
+        multiplier = min(
+            1.0 + self.streak * 1.0 / self.difficulty.difficulty_setting.multiplier_streak, 
+            self.difficulty.difficulty_setting.multiplier_limit
+        )
+        self.multiplier = math.floor(multiplier)
         self._update_score_text()
 
     def _update_score_text(self) -> None:
         """
         Update the score text.
         """
-        self.score_text.text = f"Score: {self.game_stats.score:.0f}, Multiplier: {self.multiplier:.1f}x"
+        self.score_text.text = f"Score: {self.game_stats.score:.0f}, Multiplier: {self.multiplier:.0f}x"
 
     def _update_player_lives_text(self) -> None:
         """
@@ -331,6 +290,66 @@ class SpaceShooterGameView(arcade.View):
         Handle hide view.
         """
         self.window.set_mouse_visible(True)
+
+
+class SSDifficultySelectionView(MenuView):
+    """View for choosing Space Shooter's difficulty"""
+
+    def __init__(self, previous_view: arcade.View, main_menu_view: arcade.View) -> None:
+        super().__init__(
+            title_text="Space Shooter",
+            subtitle_text="Choose your difficulty", 
+            previous_view=previous_view
+        )
+        self.main_menu_view = main_menu_view
+
+        button_easy = self.create_button(
+            button_text="Easy",
+            tooltip_text="Fewer meteors with shorter words. Recommended for beginners."
+        )
+        @button_easy.event("on_click")
+        def _(event: UIOnClickEvent) -> None:
+            self._start_game(0)
+
+        button_moderate = self.create_button(
+            button_text="Moderate",
+            tooltip_text="More meteors with longer words. Recommended for fast typists."
+        )
+        @button_moderate.event("on_click")
+        def _(event: UIOnClickEvent) -> None:
+            self._start_game(1)
+
+        button_hard = self.create_button(
+            button_text="Hard",
+            tooltip_text="Even more meteors with much longer words. You probably won't survive for long."
+        )
+        @button_hard.event("on_click")
+        def _(event: UIOnClickEvent) -> None:
+            self._start_game(2)
+
+        button_back = self.create_button(
+            button_text="Back",
+            tooltip_text="Return to the Main Menu"
+        )
+        @button_back.event("on_click")
+        def _(event: UIOnClickEvent) -> None:
+            self.return_to_previous_view()
+
+        self.initialize_buttons(
+            [
+                button_easy,
+                button_moderate,
+                button_hard,
+                button_back
+            ]
+        )
+    
+    def _start_game(self, difficulty_level: int) -> None:
+        """
+        Start the Space Shooter game with the chosen difficulty
+        """
+        game_view = SpaceShooterGameView(self.main_menu_view, difficulty_level=difficulty_level)
+        self.window.show_view(game_view)
 
 
 class PauseView(MenuView):
@@ -449,5 +468,5 @@ class GameOverView(MenuView):
         """
         Starts a new session of the space shooter game
         """
-        game_view = SpaceShooterGameView(self.main_menu_view)
+        game_view = SSDifficultySelectionView(self.main_menu_view, self.main_menu_view)
         self.window.show_view(game_view)
