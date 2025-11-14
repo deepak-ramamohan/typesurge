@@ -12,11 +12,11 @@ from utils.save_manager import SaveManager
 from utils import global_state
 from utils.resources import AI_TRAINER_MUSIC
 from utils.music_manager import MusicManager
-from ai_trainer.session_stats import SessionStats, SessionStatsList
-from ai_trainer.stats_view import StatsView
+from typing_trainer.session_stats import SessionStats, SessionStatsList
+from typing_trainer.stats_view import StatsView
 
 
-class AITrainerView(arcade.View):
+class TypingTrainerView(arcade.View):
     """
     The AI Trainer view.
     """
@@ -273,7 +273,7 @@ class PauseView(MenuView):
     The pause view.
     """
 
-    def __init__(self, game_view: AITrainerView, session_stats: SessionStats) -> None:
+    def __init__(self, game_view: TypingTrainerView, session_stats: SessionStats) -> None:
         """
         Initializer
         """
@@ -337,7 +337,7 @@ class GameCompletedView(MenuView):
     The game completed view.
     """
 
-    def __init__(self, game_view: AITrainerView, session_stats: SessionStats) -> None:
+    def __init__(self, game_view: TypingTrainerView, session_stats: SessionStats) -> None:
         """
         Initializer
         """
@@ -466,5 +466,5 @@ class ModeSelectionView(MenuView):
         """
         Start the game.
         """
-        ai_trainer_view = AITrainerView(self.main_menu_view, words_count, targeted)
+        ai_trainer_view = TypingTrainerView(self.main_menu_view, words_count, targeted)
         self.window.show_view(ai_trainer_view)

@@ -2,7 +2,7 @@ import sqlite3
 import os
 import json
 from utils.user_profile import UserProfile
-from ai_trainer.session_stats import SessionStats, SessionStatsList
+from typing_trainer.session_stats import SessionStats, SessionStatsList
 from space_shooter.game_stats import GameStats, GameStatsList
 from dataclasses import asdict
 from collections import defaultdict

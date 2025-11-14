@@ -1,6 +1,6 @@
 import arcade
 from space_shooter.views import SSDifficultySelectionView
-from ai_trainer.ai_trainer import ModeSelectionView
+from typing_trainer.trainer_views import ModeSelectionView
 from utils.menu_view import MenuView
 from utils.resources import USER_PROFILE_SPRITE
 from arcade.gui import (
