@@ -7,18 +7,21 @@ def calculate_char_weights(char_metrics_df: pd.DataFrame, noise: float = 1.0) ->
     """
     Calculates weights for each character based on accuracy.
     """
-    weights = char_metrics_df.apply(
-        lambda x: 100 * (1 - x['accuracy']) +\
-            0.5 * min(100.0, x['mean_flight_time'] * 50) +\
-            10.0 * int(x['count_total'] < 50) +\
-            noise * random.gauss(), 
-        axis=1
-    )
-    char_weights = defaultdict(
-        lambda: 10.0,
-        weights.to_dict()
-    )
-    print(char_weights)
+    if char_metrics_df.shape[0] > 0:
+        weights = char_metrics_df.apply(
+            lambda x: 100 * (1 - x['accuracy']) +\
+                0.5 * min(100.0, x['mean_flight_time'] * 50) +\
+                10.0 * int(x['count_total'] < 50) +\
+                noise * random.gauss(), 
+            axis=1
+        )
+        char_weights = defaultdict(
+            lambda: 10.0,
+            weights.to_dict()
+        )
+    else:
+        char_weights = defaultdict(lambda: 1.0)
+    # print(char_weights)
     return char_weights
 
 
@@ -44,14 +47,9 @@ class WordManager:
     """Class for loading and managing words"""
 
     # --- Weight Calculation Constants ---
-    # These can be tuned to change the behavior of the word sampling.
-
-    # Controls the influence of the word's general difficulty based on its characters.
     WEIGHT_CHAR_SCORE = 1.0
-    # Controls how much influence a word's specific mistype history has.
-    WEIGHT_WORD_SCORE = 1.0
-    # A base weight for all words to ensure new/easy words still have a chance to appear.
-    WEIGHT_RANDOM = 1.0
+    WEIGHT_WORD_SCORE = 0.0
+    WEIGHT_RANDOM = 2.0
 
     def __init__(self, file_path="words_v1.txt"):
         self._load_words(file_path)
@@ -76,10 +74,7 @@ class WordManager:
         """
         weighted_word_list = []
         for word in word_list:
-            # Calculate character_score for the word by summing the weights of its characters.
-            character_score = sum(char_weights[char] for char in word)
-
-            # Get the pre-calculated word_score for the word.
+            character_score = sum(char_weights[char] for char in word) * 1.0 / len(word)
             word_score = word_weights[word]
 
             # Calculate final hybrid weight
@@ -95,9 +90,6 @@ class WordManager:
         """
         Generates a list of words using a weighted sampling algorithm.
 
-        This method uses the single-pass sorting method (Efraimidis and Spirakis)
-        for efficient weighted random sampling without replacement.
-
         Args:
             num_words (int): The number of words to sample.
             char_weights (defaultdict): A dictionary mapping characters to their weights.
@@ -108,7 +100,6 @@ class WordManager:
         Returns:
             list: A list of unique words.
         """
-        # First, filter the word list by length using the pre-computed dictionary.
         filtered_word_list = []
         for length in range(min_character_count, max_character_count + 1):
             filtered_word_list.extend(self.words_by_length.get(length, []))
@@ -116,10 +107,8 @@ class WordManager:
         if not filtered_word_list:
             return []
 
-        # Phase 2: Calculate weights for the filtered list of words
         weighted_words = self._calculate_hybrid_word_weights(filtered_word_list, char_weights, word_weights)
 
-        # Phase 3: Implement the single-pass sorting method
         scored_words = []
         for word, weight in weighted_words:
             # random_val = random.random()
@@ -134,6 +123,28 @@ class WordManager:
         num_to_sample = min(num_words, len(scored_words))
         final_word_list = [word for word, score in scored_words[:num_to_sample]]
 
+        return final_word_list
+    
+    def get_random_sample(self, num_words, min_character_count=3, max_character_count=9):
+        """
+        Generates a list of words sampled randomly
+
+        Args:
+            num_words (int): The number of words to sample.
+            min_character_count (int): The minimum length of words to include.
+            max_character_count (int): The maximum length of words to include.
+
+        Returns:
+            list: A list of unique words.
+        """
+        filtered_word_list = []
+        for length in range(min_character_count, max_character_count + 1):
+            filtered_word_list.extend(self.words_by_length.get(length, []))
+
+        if not filtered_word_list:
+            return []
+        
+        final_word_list = random.sample(filtered_word_list, num_words)
         return final_word_list
 
     def generate_word(self, min_character_count=4, max_character_count=7):
