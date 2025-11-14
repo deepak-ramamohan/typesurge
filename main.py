@@ -22,7 +22,7 @@ class MainMenuView(MenuView):
         """
         Initializer
         """
-        title_text = "Welcome to TypeMania!"
+        title_text = "Welcome to ZippyKeys!"
         super().__init__(
             title_text=title_text,
             subtitle_text=""
@@ -38,16 +38,16 @@ class MainMenuView(MenuView):
             """
             self._start_game()
 
-        ai_trainer_button = self.create_button(
-            "AI Trainer",
+        typing_trainer_button = self.create_button(
+            "Typing Trainer",
             tooltip_text="Measure and improve your typing skills"
         )
-        @ai_trainer_button.event("on_click")
+        @typing_trainer_button.event("on_click")
         def _(event: UIOnClickEvent) -> None:
             """
-            Start the AI trainer.
+            Start the Typing trainer.
             """
-            self._start_ai_trainer()
+            self._start_typing_trainer()
  
         quit_button = self.create_button(
             "Quit",
@@ -63,7 +63,7 @@ class MainMenuView(MenuView):
         self.initialize_buttons(
             [
                 space_shooter_button,
-                ai_trainer_button,
+                typing_trainer_button,
                 quit_button
             ]
         )
@@ -135,9 +135,9 @@ class MainMenuView(MenuView):
         game_view = SSDifficultySelectionView(self, self)
         self.window.show_view(game_view)
 
-    def _start_ai_trainer(self) -> None:
+    def _start_typing_trainer(self) -> None:
         """
-        Start the AI trainer.
+        Start the Typing trainer.
         """
         trainer_view = ModeSelectionView(self, self)
         self.window.show_view(trainer_view)
@@ -165,7 +165,7 @@ def main() -> None:
     Main function
     """
     load_fonts()
-    window = arcade.Window(1280, 720, "TypeMania")
+    window = arcade.Window(1280, 720, "ZippyKeys")
     main_menu_view = MainMenuView()
     window.show_view(main_menu_view)
     arcade.run()
