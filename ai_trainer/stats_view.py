@@ -7,7 +7,7 @@ from utils.menu_view import MenuView
 from PIL import Image
 from utils.save_manager import SaveManager
 from utils import global_state
-from utils.colors import BROWN, BROWN_DARK
+from utils.colors import BROWN
 
 class StatsView(MenuView):
     """
@@ -18,30 +18,34 @@ class StatsView(MenuView):
         """
         Initializer
         """
-        super().__init__(
-            title_text="Session Stats",
-            subtitle_text="",
-            previous_view=previous_view
-        )
+        title_text = "Session Stats"
+        subtitle_text = ""
         self.save_manager = SaveManager(global_state.current_user_profile)
-        self.session_stats = self.save_manager.get_all_session_stats()
+        self.session_stats = self.save_manager.get_all_session_stats(limit=20)
+        self.total_session_count = self.save_manager.get_number_of_sessions()
         self.plot_texture = None
 
         if not self.session_stats:
-            self.subtitle_label.text = "No stats available yet. Play a session to see your progress!"
-        else:
-            self._generate_plot()
+            subtitle_text = "No stats available yet. Play a session to see your progress!"
+        
+        super().__init__(
+            title_text=title_text,
+            subtitle_text=subtitle_text,
+            previous_view=previous_view
+        )
 
         back_button = self.create_button("Back")
         @back_button.event("on_click")
-        def _(event: "UIOnClickEvent") -> None:
+        def _(event: UIOnClickEvent) -> None:
             """
             Return to the previous view.
             """
             self.return_to_previous_view()
 
-        self.drawing_space = UISpace(height=int(self.window.height * 0.65))
-        self.header_box.add(self.drawing_space)
+        if self.session_stats:
+            self.drawing_space = UISpace(height=int(self.window.height * 0.65))
+            self.header_box.add(self.drawing_space)
+            self._generate_plot()
 
         self.initialize_buttons([back_button])
 
@@ -51,7 +55,13 @@ class StatsView(MenuView):
         """
         wpm_data = [stat.wpm for stat in self.session_stats]
         accuracy_data = [stat.accuracy * 100 for stat in self.session_stats]
-        sessions = [str(i+1) for i in range(len(self.session_stats))]
+        num_sessions = len(self.session_stats)
+        sessions = [
+            str(i) for i in range(
+                self.total_session_count - num_sessions + 1, 
+                self.total_session_count + 1
+            )
+        ]
 
         # Add Pixelzone font
         font_path = 'assets/fonts/Pixelzone-0v6y4.ttf'
@@ -60,7 +70,7 @@ class StatsView(MenuView):
 
         LABEL_FONT_SIZE = 42
 
-        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(18, 8))
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(20, 8))
 
         # Line plot for WPM
         ax1.plot(sessions, wpm_data, color=[(c/255) for c in BROWN], label='WPM', marker='*')
@@ -97,7 +107,16 @@ class StatsView(MenuView):
         ax2.set_yticklabels(tick_labels)
 
         for i, txt in enumerate(accuracy_data):
-            ax2.text(sessions[i], transformed_accuracy_data[i] - 0.04, f'{txt:.1f}%', va='top', ha='center', fontsize=LABEL_FONT_SIZE, color=[(c/255) for c in BROWN], fontweight='bold')
+            ax2.text(
+                sessions[i], 
+                transformed_accuracy_data[i] - 0.04, 
+                f'{txt:.1f}%', 
+                va='top', 
+                ha='center', 
+                fontsize=LABEL_FONT_SIZE, 
+                color=[(c/255) for c in BROWN], 
+                fontweight='bold'
+            )
         
         fig.tight_layout()
         fig.patch.set_alpha(0.0)
@@ -125,7 +144,8 @@ class StatsView(MenuView):
             plot_width = self.window.width - 100
             plot_height = plot_width / plot_aspect_ratio
 
-            height_cap = self.window.height - 250
+            # height_cap = self.window.height - 250
+            height_cap = self.drawing_space.rect.height
 
             # Ensure the plot doesn't exceed the screen height
             if plot_height > height_cap:
