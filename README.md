@@ -2,6 +2,8 @@
 
 A typing game built with the Python `arcade` library.
 
+![Title Screen](misc/title_screen.png)
+
 ## Getting Started
 
 First, you'll need to clone the repository to your local machine. You can do this by running the following command in your terminal:
@@ -44,6 +46,11 @@ python main.py
 
 A fast-paced arcade game where you must type words to shoot down enemy meteors. The difficulty ramps up as your score gets higher.
 
+![Space Shooter](misc/space_shooter_recording.gif)
+
 ### Typing Trainer
 
 A training mode that helps you improve your typing skills. It tracks your words-per-minute (WPM) and accuracy. This mode intelligently selects words that you have previously mistyped to help you practice and improve on your weaknesses.
+
+![Typing Trainer](misc/trainer_view.png)
+![Typing Trainer Stats](misc/trainer_stats_view.png)
