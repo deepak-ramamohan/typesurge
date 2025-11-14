@@ -27,10 +27,10 @@ class AITrainerView(arcade.View):
     WPM_TEXT_COLOR = arcade.color.ANTIQUE_RUBY
     FONT_NAME = "Pixelzone"
     WORD_CHARACTER_COUNT_MIN = 4
-    WORD_CHARACTER_COUNT_MAX = 8
+    WORD_CHARACTER_COUNT_MAX = 9
     SPACE_CHAR = '·'
 
-    def __init__(self, main_menu_view: arcade.View, words_count: int) -> None:
+    def __init__(self, main_menu_view: arcade.View, words_count: int, targeted: bool = True) -> None:
         """
         Initializer
         """
@@ -40,20 +40,27 @@ class AITrainerView(arcade.View):
         self.words_count = words_count
         save_manager = SaveManager(global_state.current_user_profile) 
         self.word_manager = WordManager()
-        char_weights = calculate_char_weights(
-            save_manager.get_all_session_stats().compute_aggregate_char_metrics()
-        )
-        word_weights = calculate_word_weights(
-            save_manager.get_word_mistype_counts()
-        )
-        self.words_list = self.word_manager.get_weighted_sample(
-            num_words=self.words_count,
-            char_weights=char_weights,
-            word_weights=word_weights,
-            min_character_count=self.WORD_CHARACTER_COUNT_MIN,
-            max_character_count=self.WORD_CHARACTER_COUNT_MAX
-        )
-        print(self.words_list)
+        if targeted:
+            char_weights = calculate_char_weights(
+                save_manager.get_all_session_stats().compute_aggregate_char_metrics()
+            )
+            word_weights = calculate_word_weights(
+                save_manager.get_word_mistype_counts()
+            )
+            self.words_list = self.word_manager.get_weighted_sample(
+                num_words=self.words_count,
+                char_weights=char_weights,
+                word_weights=word_weights,
+                min_character_count=self.WORD_CHARACTER_COUNT_MIN,
+                max_character_count=self.WORD_CHARACTER_COUNT_MAX
+            )
+        else:
+            self.words_list = self.word_manager.get_random_sample(
+                num_words=self.words_count,
+                min_character_count=self.WORD_CHARACTER_COUNT_MIN,
+                max_character_count=self.WORD_CHARACTER_COUNT_MAX
+            )
+        # print(self.words_list)
         self.word_index = 0
         self.input_text = " ".join(self.words_list)
         self.padding_size = 150
@@ -395,43 +402,33 @@ class ModeSelectionView(MenuView):
         self.main_menu_view = main_menu_view
         self.user_profile = global_state.current_user_profile
         super().__init__(
-            title_text="AI Trainer",
+            title_text="Typing Trainer",
             subtitle_text="Choose your mode",
             previous_view=previous_view
         )
 
-        button_25_words = self.create_button(
-            "25 Words",
-            tooltip_text="A short and sweet session to warm up your fingers."
+        button_random_words = self.create_button(
+            "Random Words",
+            tooltip_text="Presents a selection of 50 random words for you to type."
         )
-        @button_25_words.event("on_click")
+        @button_random_words.event("on_click")
         def _(event: "UIOnClickEvent") -> None:
             """
-            Start the game with 25 words.
+            Start the game with 50 random words.
             """
-            self.start_game(25)
+            self.start_game(50, targeted=False)
 
-        button_50_words = self.create_button(
-            "50 Words",
-            tooltip_text="A balanced session to test your speed and accuracy."
+        button_targeted_words = self.create_button(
+            "Targeted Words",
+            tooltip_text="Presents a selection of 50 challenging words based on your typing stats."
         )
-        @button_50_words.event("on_click")
+        @button_targeted_words.event("on_click")
         def _(event: "UIOnClickEvent") -> None:
             """
-            Start the game with 50 words.
+            Start the game with 50 targeted, challenging words.
             """
-            self.start_game(50)
+            self.start_game(50, targeted=True)
 
-        button_100_words = self.create_button(
-            "100 Words",
-            tooltip_text="A true test of endurance and focus. Can you keep up?"
-        )
-        @button_100_words.event("on_click")
-        def _(event: "UIOnClickEvent") -> None:
-            """
-            Start the game with 100 words.
-            """
-            self.start_game(100)
 
         button_back = self.create_button(
             "Back",
@@ -458,17 +455,16 @@ class ModeSelectionView(MenuView):
 
         self.initialize_buttons(
             [
-                button_25_words,
-                button_50_words,
-                button_100_words,
+                button_random_words,
+                button_targeted_words,
                 button_stats,
                 button_back,
             ]
         )
     
-    def start_game(self, words_count: int) -> None:
+    def start_game(self, words_count: int, targeted: bool = True) -> None:
         """
         Start the game.
         """
-        ai_trainer_view = AITrainerView(self.main_menu_view, words_count)
+        ai_trainer_view = AITrainerView(self.main_menu_view, words_count, targeted)
         self.window.show_view(ai_trainer_view)
