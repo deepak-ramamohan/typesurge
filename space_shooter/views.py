@@ -321,7 +321,7 @@ class SSDifficultySelectionView(MenuView):
 
         button_hard = self.create_button(
             button_text="Hard",
-            tooltip_text="Even more meteors with much longer words. You probably won't survive for long."
+            tooltip_text="Even more meteors with much longer words. A real challenge."
         )
         @button_hard.event("on_click")
         def _(event: UIOnClickEvent) -> None:
