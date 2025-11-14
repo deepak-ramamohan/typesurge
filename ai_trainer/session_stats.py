@@ -98,5 +98,6 @@ class SessionStatsList(UserList):
             }
             metrics_list.append(data)
         metrics_df = pd.DataFrame(metrics_list)
-        metrics_df.set_index("char", inplace=True)
+        if metrics_df.shape[0] > 0:
+            metrics_df.set_index("char", inplace=True)
         return metrics_df
