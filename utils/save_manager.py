@@ -145,17 +145,6 @@ class SaveManager:
             return False
         return True
 
-    def fetch_all_session_stats(self) -> list:
-        """
-        Loads and prints the entire database to the console.
-        """
-        result = []
-        with sqlite3.connect(self.file_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM trainer_session_stats")
-            result = cursor.fetchall()
-        return result
-
     def get_char_accuracies(self) -> defaultdict[str, float]:
         """
         Gets the character accuracies from the database.
@@ -220,3 +209,14 @@ class SaveManager:
                 )
         session_stats_list.reverse()
         return session_stats_list
+    
+    def get_number_of_sessions(self) -> int:
+        """
+        Returns the number of sessions stored in the database
+        """
+        query = "SELECT COUNT(*) from trainer_session_stats"
+        with sqlite3.connect(self.file_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(query)
+            results = cursor.fetchall()
+        return int(results[0][0])
