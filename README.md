@@ -15,7 +15,7 @@ git clone https://github.com/deepak-ramamohan/typing-game.git
 
 Once you have cloned the repository, you'll need to set up a Python environment.
 
-### Using Conda
+### Set up a Python Environment using Conda
 
 You can follow the instructions [here](https://www.anaconda.com/docs/getting-started/miniconda/install) for installing miniconda (recommended).
 
