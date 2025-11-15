@@ -1,4 +1,4 @@
-# ZippyKeys
+# TypeSurge
 
 A typing game built with the Python `arcade` library.
 
@@ -23,10 +23,10 @@ Once done, you can create a new environment and install dependencies with the fo
 
 ```bash
 # Create a new conda environment with Python 3.12
-conda create --name zippy_keys python=3.12
+conda create --name typesurge python=3.12
 
 # Activate the environment
-conda activate zippy_keys
+conda activate typesurge
 
 # Install the required dependencies
 pip install -r requirements.txt

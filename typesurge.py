@@ -1,3 +1,8 @@
+import sys
+import os
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    os.chdir(sys._MEIPASS) # type: ignore
+
 import arcade
 from space_shooter.views import SSDifficultySelectionView
 from typing_trainer.trainer_views import ModeSelectionView
@@ -22,7 +27,7 @@ class MainMenuView(MenuView):
         """
         Initializer
         """
-        title_text = "Welcome to ZippyKeys!"
+        title_text = "Welcome to TypeSurge!"
         super().__init__(
             title_text=title_text,
             subtitle_text=""
@@ -165,7 +170,7 @@ def main() -> None:
     Main function
     """
     load_fonts()
-    window = arcade.Window(1280, 720, "ZippyKeys")
+    window = arcade.Window(1280, 720, "TypeSurge")
     main_menu_view = MainMenuView()
     window.show_view(main_menu_view)
     arcade.run()
