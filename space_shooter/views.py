@@ -64,9 +64,6 @@ class SpaceShooterGameView(arcade.View):
         self.difficulty = Difficulty(difficulty_level=difficulty_level)
         self.multiplier = 1.0
         self.streak = 0
-        self._load_explosion_texture_list()
-        self.explosion_sound = arcade.Sound(":resources:/sounds/explosion2.wav")
-        self.game_over_sound = arcade.Sound(":resources:/sounds/gameover3.wav")
         MusicManager.play_music(SPACE_SHOOTER_MUSIC)
         self.setup()
 
@@ -138,23 +135,11 @@ class SpaceShooterGameView(arcade.View):
         laser = Laser(self.player, enemy_word)
         self.laser_list.append(laser)
 
-    def _load_explosion_texture_list(self) -> None:
-        """
-        Load the explosion texture list.
-        """
-        spritesheet = arcade.load_spritesheet(":resources:images/spritesheets/explosion.png")
-        self.explosion_texture_list = spritesheet.get_texture_grid(
-            size=(256, 256),
-            columns=16,
-            count=16*10
-        )
-
     def _create_explosion_at_sprite(self, sprite: arcade.Sprite) -> None:
         """
         Create an explosion at the given sprite (and remove the sprite).
         """
-        arcade.play_sound(self.explosion_sound, volume=self.SOUND_VOLUME)
-        explosion = Explosion(self.explosion_texture_list)
+        explosion = Explosion()
         explosion.position = sprite.position
         self.explosion_list.append(explosion)
         sprite.remove_from_sprite_lists()
@@ -272,7 +257,7 @@ class SpaceShooterGameView(arcade.View):
         """
         arcade.play_sound(
             KEYPRESS_SOUND, 
-            volume=random.uniform(0.55, 0.65),
+            volume=random.uniform(0.65, 0.75),
             speed=random.uniform(0.98, 1.02)
         )
 

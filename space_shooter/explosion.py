@@ -1,4 +1,5 @@
 import arcade
+from utils.resources import EXPLOSION_SOUND, EXPLOSION_TEXTURE_LIST
 
 
 class Explosion(arcade.Sprite):
@@ -6,14 +7,15 @@ class Explosion(arcade.Sprite):
     An explosion animation.
     """
 
-    def __init__(self, texture_list: list[arcade.Texture]) -> None:
+    def __init__(self) -> None:
         """
         Initializer
         """
-        super().__init__(texture_list[0])
+        super().__init__(EXPLOSION_TEXTURE_LIST[0])
         self.time_elapsed = 0
         self.animation_time = 0.6
-        self.textures = texture_list
+        self.textures = EXPLOSION_TEXTURE_LIST
+        self._play_sound()
 
     def update(self, delta_time: float = 1 / 60) -> None:
         """
@@ -25,3 +27,9 @@ class Explosion(arcade.Sprite):
             self.set_texture(index)
         else:
             self.remove_from_sprite_lists()
+
+    def _play_sound(self) -> None:
+        """
+        Play explosion sound
+        """
+        arcade.play_sound(EXPLOSION_SOUND)
