@@ -64,3 +64,7 @@ A training mode that helps you improve your typing skills. It tracks your words-
 
 ![Typing Trainer](misc/trainer_view.png)
 ![Typing Trainer Stats](misc/trainer_stats_view.png)
+
+## Feedback
+
+Please submit your feedback [here](https://forms.gle/fjH7YFmvTHUEXYrQ8).
