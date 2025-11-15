@@ -8,3 +8,7 @@ __pycache__/
 
 # Save files
 save/
+
+# Pyinstaller
+build/
+dist/
