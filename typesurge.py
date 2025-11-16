@@ -3,6 +3,7 @@ import os
 if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     os.chdir(sys._MEIPASS) # type: ignore
 
+import pyglet.app
 import arcade
 from space_shooter.views import SSDifficultySelectionView
 from typing_trainer.trainer_views import ModeSelectionView
