@@ -37,7 +37,7 @@ pip install -r requirements.txt
 Once you have set up the environment and installed the dependencies, navigate to the folder you cloned (`typing-game`) from your terminal. You can now run the game with the following command:
 
 ```bash
-python main.py
+python typesurge.py
 ```
 
 ## Game Modes
